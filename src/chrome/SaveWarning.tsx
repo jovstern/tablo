@@ -13,7 +13,7 @@ export function SaveWarning({ failure, engine }: { failure: SaveFailure; engine:
   return (
     <div
       role="alert"
-      className="pointer-events-auto absolute left-1/2 top-4 flex h-11 -translate-x-1/2 items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-50 pl-4 pr-1.5 text-sm text-amber-950 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-amber-950 dark:text-amber-100"
+      className="pointer-events-auto flex h-11 items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-50 pl-4 pr-1.5 text-sm text-amber-950 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-amber-950 dark:text-amber-100"
     >
       <TriangleAlert size={16} className="shrink-0" />
       <span className="whitespace-nowrap">

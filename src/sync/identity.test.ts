@@ -1,12 +1,12 @@
 import { expect, test } from 'vitest'
 import { fakeStorage } from '../boards/fakeStorage'
-import { IDENTITY_COLOURS, loadIdentity } from './identity'
+import { loadIdentity } from './identity'
 
-test('a visitor is given a two-word name and one of the identity colours', () => {
+test('a visitor is given a two-word name and a key for their colour', () => {
   const identity = loadIdentity(fakeStorage())
 
   expect(identity.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/)
-  expect(IDENTITY_COLOURS).toContain(identity.colour)
+  expect(identity.colourKey).not.toBe('')
 })
 
 test('a visitor keeps the same identity on later visits', () => {

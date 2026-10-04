@@ -9,13 +9,15 @@ import { useBoardSync } from './sync/useBoardSync'
 
 type Props = {
   id: string
+  /** Whether the visitor got here through tablo itself, not through a link someone sent. */
+  ownBoard: boolean
   store: BoardStore
   theme: Theme
   onToggleTheme: () => void
 }
 
 /** One board: its canvas and the chrome around it. */
-export function Board({ id, store, theme, onToggleTheme }: Props) {
+export function Board({ id, ownBoard, store, theme, onToggleTheme }: Props) {
   const [engine, setEngine] = useState<Engine | null>(null)
   const [savedScene] = useState(() => store.load(id))
 
@@ -23,6 +25,14 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
   const saveFailure = useAutosave(engine, id, store)
   const [identity] = useState(() => loadIdentity(window.localStorage))
   const sync = useBoardSync(engine, id, identity)
+
+  // A link someone sent, opened with no copy here and nobody there to send one:
+  // the relay keeps nothing, so what shows may not be the whole board (ADR 0003).
+  const [noticeDismissed, setNoticeDismissed] = useState(false)
+  const nobodyThere =
+    sync.status === 'offline' || (sync.status === 'online' && sync.otherParticipants.length === 0)
+  const mayBeIncomplete =
+    !ownBoard && savedScene === null && !sync.receivedScene && nobodyThere && !noticeDismissed
 
   useEffect(() => {
     if (!import.meta.env.DEV || !engine) return
@@ -42,6 +52,8 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
         engine={engine}
         saveFailure={saveFailure}
         sync={sync}
+        mayBeIncomplete={mayBeIncomplete}
+        onDismissIncomplete={() => setNoticeDismissed(true)}
         identity={identity}
         theme={theme}
         onToggleTheme={onToggleTheme}

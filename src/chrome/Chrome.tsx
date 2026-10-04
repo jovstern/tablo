@@ -6,6 +6,7 @@ import { BoardMenu } from './BoardMenu'
 import { Dock } from './Dock'
 import { ExportButtons } from './ExportButtons'
 import { HistoryControls } from './HistoryControls'
+import { IncompleteNotice } from './IncompleteNotice'
 import { OfflineStatus } from './OfflineStatus'
 import { Participants } from './Participants'
 import { SaveWarning } from './SaveWarning'
@@ -23,13 +24,25 @@ type Props = {
   /** Why the board is not being saved, or null while saving works. */
   saveFailure: SaveFailure | null
   sync: SyncState
+  /** Whether to say that this board may not be all there. */
+  mayBeIncomplete: boolean
+  onDismissIncomplete: () => void
   /** How this visitor appears to the other participants. */
   identity: Identity
   theme: Theme
   onToggleTheme: () => void
 }
 
-export function Chrome({ engine, saveFailure, sync, identity, theme, onToggleTheme }: Props) {
+export function Chrome({
+  engine,
+  saveFailure,
+  sync,
+  mayBeIncomplete,
+  onDismissIncomplete,
+  identity,
+  theme,
+  onToggleTheme,
+}: Props) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-zinc-800 dark:text-zinc-100">
       <BoardMenu />
@@ -56,7 +69,10 @@ export function Chrome({ engine, saveFailure, sync, identity, theme, onToggleThe
             <HistoryControls engine={engine} />
           </div>
           <Dock engine={engine} />
-          {saveFailure && <SaveWarning failure={saveFailure} engine={engine} />}
+          <div className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center gap-2 max-xl:top-[4.5rem]">
+            {saveFailure && <SaveWarning failure={saveFailure} engine={engine} />}
+            {mayBeIncomplete && <IncompleteNotice onDismiss={onDismissIncomplete} />}
+          </div>
         </>
       )}
     </div>

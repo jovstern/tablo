@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { boardPath, newBoardId } from '../boards/boardId'
+import { boardPath, newBoardId, OWN_BOARD } from '../boards/boardId'
 import { card, divider, keepCanvasFocus } from './ui'
 
 /** Top left: the wordmark and the way to a fresh board. */
@@ -13,7 +13,7 @@ export function BoardMenu() {
         type="button"
         onMouseDown={keepCanvasFocus}
         className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-        onClick={() => navigate(boardPath(newBoardId()))}
+        onClick={() => navigate(boardPath(newBoardId()), { state: OWN_BOARD })}
       >
         New board
       </button>

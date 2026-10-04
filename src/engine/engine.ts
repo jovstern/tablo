@@ -36,7 +36,12 @@ export type Activity = {
 }
 
 /** Another participant, as the canvas draws them: a named cursor and their selection. */
-export type ShownParticipant = Activity & { id: string; name: string; colour: string }
+export type ShownParticipant = Activity & {
+  id: string
+  name: string
+  /** Decides the cursor's colour; `participantColour` says which colour that is. */
+  colourKey: string
+}
 
 /** What the chrome shows of the engine. A new object whenever anything in it changes. */
 export type EngineState = {

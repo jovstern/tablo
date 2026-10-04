@@ -1,3 +1,4 @@
+import { participantColour } from '../engine/participantColour'
 import type { Identity } from '../sync/identity'
 
 const initials = (name: string) =>
@@ -12,14 +13,15 @@ function Avatar({ identity, own }: { identity: Identity; own?: boolean }) {
     <li
       aria-label={label}
       title={label}
-      className={`relative -ml-1.5 grid h-8 w-8 place-items-center rounded-full text-[11px] font-semibold text-white ring-2 first:ml-0 ${
+      className={`relative -ml-1.5 grid h-8 w-8 place-items-center rounded-full text-[11px] font-semibold text-zinc-900 ring-2 first:ml-0 ${
         own ? 'ring-indigo-500' : 'ring-white dark:ring-zinc-900'
       }`}
     >
       {/* Filtered like the canvas, so an avatar matches its participant's cursor in both themes. */}
       <span
         className="absolute inset-0 rounded-full [filter:var(--canvas-colour-filter)]"
-        style={{ backgroundColor: identity.colour }}
+        data-avatar-colour
+        style={{ backgroundColor: participantColour(identity.colourKey) }}
       />
       <span className="relative">{initials(identity.name)}</span>
     </li>

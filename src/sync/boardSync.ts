@@ -17,9 +17,16 @@ export type SyncState = {
   otherParticipants: readonly string[]
   /** Those of them who have said who they are, which each does on arriving. */
   others: readonly (Identity & { id: string })[]
+  /** Whether any participant has sent this browser elements of the board. */
+  receivedScene: boolean
 }
 
-export const NOT_CONNECTED: SyncState = { status: 'connecting', otherParticipants: [], others: [] }
+export const NOT_CONNECTED: SyncState = {
+  status: 'connecting',
+  otherParticipants: [],
+  others: [],
+  receivedScene: false,
+}
 
 export type BoardSync = { stop(): void }
 
@@ -41,11 +48,13 @@ export function startBoardSync(
   const showPresences = () =>
     engine.showParticipants([...presences].map(([id, presence]) => ({ id, ...presence })))
   let status: SyncState['status'] = 'connecting'
+  let receivedScene = false
   const report = () =>
     onStateChange({
       status,
       otherParticipants: [...others],
-      others: [...presences].map(([id, { name, colour }]) => ({ id, name, colour })),
+      others: [...presences].map(([id, { name, colourKey }]) => ({ id, name, colourKey })),
+      receivedScene,
     })
   /**
    * The newest version of each element the others are known to have, because it
@@ -92,10 +101,14 @@ export function startBoardSync(
       if (message.type === 'scene') {
         markShared(message.elements)
         engine.applyRemoteElements(message.elements)
+        if (!receivedScene) {
+          receivedScene = true
+          report()
+        }
       } else if (message.type === 'presence') {
-        const { name, colour, pointer, selectedIds } = message
+        const { name, colourKey, pointer, selectedIds } = message
         const isNew = !presences.has(from)
-        presences.set(from, { name, colour, pointer, selectedIds })
+        presences.set(from, { name, colourKey, pointer, selectedIds })
         showPresences()
         // Pointer moves arrive many times a second; who is here changes only on arrival.
         if (isNew) report()

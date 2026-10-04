@@ -190,12 +190,12 @@ export function createEngine(
     showParticipants(participants) {
       api.updateScene({
         collaborators: new Map(
-          participants.map(({ id, name, colour, pointer, selectedIds }) => [
+          participants.map(({ id, name, colourKey, pointer, selectedIds }) => [
             id as SocketId,
             {
-              id,
+              // The engine colours the cursor from this id (see participantColour).
+              id: colourKey,
               username: name,
-              color: { background: colour, stroke: colour },
               pointer: pointer ? { ...pointer, tool: 'pointer' as const } : undefined,
               selectedElementIds: Object.fromEntries(selectedIds.map((id) => [id, true as const])),
             },
@@ -208,7 +208,7 @@ export function createEngine(
       [...api.getAppState().collaborators].map(([id, shown]) => ({
         id,
         name: shown.username ?? '',
-        colour: shown.color?.background ?? '',
+        colourKey: shown.id ?? '',
         pointer: shown.pointer ? { x: shown.pointer.x, y: shown.pointer.y } : null,
         selectedIds: Object.keys(shown.selectedElementIds ?? {}),
       })),

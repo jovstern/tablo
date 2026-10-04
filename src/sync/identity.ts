@@ -1,21 +1,11 @@
 /** How a visitor appears to the other participants. There are no accounts, so this is all there is. */
-export type Identity = { name: string; colour: string }
+export type Identity = {
+  name: string
+  /** A random string the visitor's colour is derived from, the same for everyone who sees them. */
+  colourKey: string
+}
 
 const IDENTITY_KEY = 'tablo:identity'
-
-/** Dark enough to read as a cursor on a light canvas; the canvas adjusts them in dark mode. */
-export const IDENTITY_COLOURS = [
-  '#e03131',
-  '#c2255c',
-  '#9c36b5',
-  '#6741d9',
-  '#3b5bdb',
-  '#1971c2',
-  '#0c8599',
-  '#099268',
-  '#2f9e44',
-  '#e8590c',
-]
 
 const ADJECTIVES = [
   'Amber', 'Brisk', 'Calm', 'Clever', 'Coral', 'Dapper', 'Eager', 'Gentle', 'Golden', 'Hazel',
@@ -33,14 +23,14 @@ const pick = <T>(from: readonly T[]) => from[Math.floor(Math.random() * from.len
 
 const newIdentity = (): Identity => ({
   name: `${pick(ADJECTIVES)} ${pick(ANIMALS)}`,
-  colour: pick(IDENTITY_COLOURS),
+  colourKey: crypto.randomUUID(),
 })
 
 function stored(storage: Storage): Identity | null {
   try {
     const identity = JSON.parse(storage.getItem(IDENTITY_KEY) ?? 'null')
-    return typeof identity?.name === 'string' && typeof identity?.colour === 'string'
-      ? { name: identity.name, colour: identity.colour }
+    return typeof identity?.name === 'string' && typeof identity?.colourKey === 'string'
+      ? { name: identity.name, colourKey: identity.colourKey }
       : null
   } catch {
     return null
