@@ -79,3 +79,17 @@ test('changes made on both sides while disconnected reach the other on reconnect
   await expect.poll(() => types(page)).toEqual(['ellipse', 'rectangle'])
   await expect.poll(() => types(ben)).toEqual(['ellipse', 'rectangle'])
 })
+
+test('losing the network shows offline at once, and getting it back reconnects', async ({
+  page,
+  context,
+}) => {
+  await openBoard(page, '/')
+  await expect(offline(page)).toHaveCount(0)
+
+  await context.setOffline(true)
+  await expect(offline(page)).toBeVisible()
+
+  await context.setOffline(false)
+  await expect(offline(page)).toHaveCount(0)
+})

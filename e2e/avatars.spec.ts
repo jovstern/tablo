@@ -1,8 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openBoard, twoParticipants } from './board'
-
-const nameOf = (page: Page) =>
-  page.evaluate(() => JSON.parse(localStorage.getItem('tablo:identity')!).name as string)
+import { nameOf, openBoard, twoParticipants } from './board'
 
 const avatars = (page: Page) =>
   page.getByRole('list', { name: 'Participants' }).getByRole('listitem')

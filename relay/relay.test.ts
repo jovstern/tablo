@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'vitest'
 import { WebSocket } from 'ws'
+import { decodeFrame, encodeFrame } from './frame.ts'
 import { startRelay, type Relay } from './relay.ts'
 
 type Frame = { header: Record<string, unknown>; body: string }
@@ -20,9 +21,7 @@ async function join(board: string) {
   const frames: Frame[] = []
   const waiting: (() => void)[] = []
   socket.on('message', (data) => {
-    const text = data.toString()
-    const cut = text.indexOf('\n')
-    frames.push({ header: JSON.parse(text.slice(0, cut)), body: text.slice(cut + 1) })
+    frames.push(decodeFrame<Record<string, unknown>>(data.toString())!)
     waiting.splice(0).forEach((wake) => wake())
   })
   /** The next frame of a type, waiting for it if it has not arrived yet. */
@@ -39,8 +38,7 @@ async function join(board: string) {
     present: welcome.header.participants as string[],
     next,
     frames,
-    send: (body: string, to?: string) =>
-      socket.send(`${JSON.stringify(to ? { to } : {})}\n${body}`),
+    send: (body: string, to?: string) => socket.send(encodeFrame(to ? { to } : {}, body)),
     leave: () => socket.close(),
     closed: new Promise<number>((resolve) => socket.on('close', resolve)),
   }
@@ -136,4 +134,26 @@ test('a connection that names no board is refused', async () => {
   })
 
   expect(code).toBe(1008)
+})
+
+test('a participant whose connection went silent is dropped and the others are told', async () => {
+  relay = await startRelay({ port: 0, heartbeatMs: 50 })
+  const steady = await join('board')
+  // Stops answering the relay's pings, as a connection that vanished would.
+  const silent = new WebSocket(`ws://localhost:${relay.port}/b/board`, { autoPong: false })
+  sockets.push(silent)
+  const silentId = (await steady.next('joined')).header.id
+
+  expect((await steady.next('left')).header.id).toBe(silentId)
+})
+
+test('a participant who keeps answering is not dropped', async () => {
+  relay = await startRelay({ port: 0, heartbeatMs: 50 })
+  const first = await join('board')
+  const second = await join('board')
+
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  first.send('still here')
+
+  expect((await second.next('message')).body).toBe('still here')
 })

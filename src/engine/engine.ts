@@ -84,7 +84,7 @@ export interface Engine {
   shownParticipants(): ShownParticipant[]
   /**
    * Calls back whenever the scene changes. The one place scene changes leave the
-   * engine: autosave listens here, and a relay would too (ADR 0002).
+   * engine: autosave listens here, and so does sync (ADR 0002, 0003).
    */
   onSceneChange(listener: () => void): Unsubscribe
 

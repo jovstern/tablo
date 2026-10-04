@@ -70,3 +70,7 @@ export async function twoParticipants(page: Page, browser: Browser): Promise<[Pa
   }
   return [page, second]
 }
+
+/** The name this page's visitor goes by. */
+export const nameOf = (page: Page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem('tablo:identity')!).name as string)

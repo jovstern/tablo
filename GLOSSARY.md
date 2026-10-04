@@ -68,6 +68,14 @@ _Avoid_: Peer, collaborator, user, member
 What participants see of each other while on a board: cursors with names, selections, and who is there.
 _Avoid_: Awareness, status
 
+**Identity**:
+The name and colour a visitor is given on their first visit and keeps in that browser. It is how participants tell each other apart.
+_Avoid_: Profile, account, user
+
+**Activity**:
+What a participant is doing on the canvas that the others see: where their pointer is and what they have selected.
+_Avoid_: Cursor state, awareness
+
 **Tombstone**:
 A deleted element kept in the scene so the deletion reaches browsers that still hold the element.
 _Avoid_: Soft delete, ghost

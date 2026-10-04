@@ -1,4 +1,5 @@
 import { participantColour } from '../engine/participantColour'
+import type { OtherParticipant } from '../sync/boardSync'
 import type { Identity } from '../sync/identity'
 
 const initials = (name: string) =>
@@ -30,7 +31,7 @@ function Avatar({ identity, own }: { identity: Identity; own?: boolean }) {
 
 type Props = {
   me: Identity
-  others: readonly (Identity & { id: string })[]
+  others: readonly OtherParticipant[]
 }
 
 /** Top right: who is on the board. The visitor comes first, marked as themselves. */

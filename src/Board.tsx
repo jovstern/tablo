@@ -22,6 +22,11 @@ export function Board({ id, ownBoard, store, theme, onToggleTheme }: Props) {
   const [savedScene] = useState(() => store.load(id))
 
   useEffect(() => store.setRecentBoard(id), [id, store])
+  // A board the visitor made is theirs from the start, drawn on or not: saving it
+  // empty is what tells a later visit that this browser has the whole of it.
+  useEffect(() => {
+    if (ownBoard && savedScene === null) store.save(id, { elements: [] })
+  }, [ownBoard, savedScene, id, store])
   const saveFailure = useAutosave(engine, id, store)
   const [identity] = useState(() => loadIdentity(window.localStorage))
   const sync = useBoardSync(engine, id, identity)
@@ -30,7 +35,7 @@ export function Board({ id, ownBoard, store, theme, onToggleTheme }: Props) {
   // the relay keeps nothing, so what shows may not be the whole board (ADR 0003).
   const [noticeDismissed, setNoticeDismissed] = useState(false)
   const nobodyThere =
-    sync.status === 'offline' || (sync.status === 'online' && sync.otherParticipants.length === 0)
+    sync.status === 'offline' || (sync.status === 'online' && sync.otherIds.length === 0)
   const mayBeIncomplete =
     !ownBoard && savedScene === null && !sync.receivedScene && nobodyThere && !noticeDismissed
 
@@ -39,7 +44,7 @@ export function Board({ id, ownBoard, store, theme, onToggleTheme }: Props) {
     window.__tablo = {
       boardId: id,
       scene: () => [...engine.scene().elements],
-      otherParticipants: () => sync.otherParticipants.length,
+      otherParticipants: () => sync.otherIds.length,
       shownParticipants: () => engine.shownParticipants(),
     }
     return () => void delete window.__tablo

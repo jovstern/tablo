@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { drag, scene, tool, twoParticipants } from './board'
+import { drag, openParticipant, scene, tool, twoParticipants } from './board'
 
 test("an element one participant draws appears on the other's board", async ({ page, browser }) => {
   const [ana, ben] = await twoParticipants(page, browser)
@@ -97,4 +97,26 @@ test('boards do not leak into each other', async ({ page, browser }) => {
   await expect.poll(() => scene(ben)).toHaveLength(1)
 
   expect(await scene(cy)).toHaveLength(0)
+})
+
+test('three participants all see what each of them draws', async ({ page, browser }) => {
+  const [ana, ben] = await twoParticipants(page, browser)
+  const cy = await openParticipant(browser, ana.url())
+  const everyone = [ana, ben, cy]
+  for (const participant of everyone) {
+    await participant.waitForFunction(() => window.__tablo!.otherParticipants() === 2)
+  }
+
+  await tool(ana, 'Rectangle').click()
+  await drag(ana, [200, 250], [300, 330])
+  await tool(ben, 'Ellipse').click()
+  await drag(ben, [450, 250], [550, 330])
+  await tool(cy, 'Arrow').click()
+  await drag(cy, [700, 250], [800, 330])
+
+  for (const participant of everyone) {
+    await expect
+      .poll(async () => (await scene(participant)).map((el) => el.type).sort())
+      .toEqual(['arrow', 'ellipse', 'rectangle'])
+  }
 })

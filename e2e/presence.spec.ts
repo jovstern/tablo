@@ -1,9 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { drag, openBoard, scene, tool, twoParticipants, waitForBoard } from './board'
-
-/** The name this page's visitor goes by. */
-const nameOf = (page: Page) =>
-  page.evaluate(() => JSON.parse(localStorage.getItem('tablo:identity')!).name as string)
+import { drag, nameOf, openBoard, scene, tool, twoParticipants, waitForBoard } from './board'
 
 /** The other participants this page's canvas is showing. */
 const shown = (page: Page) => page.evaluate(() => window.__tablo!.shownParticipants())

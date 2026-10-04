@@ -83,3 +83,27 @@ test('the notice can be dismissed', async ({ page }) => {
 
   await expect(notice(page)).toHaveCount(0)
 })
+
+test('a sent link reopened from the root URL still says it may be incomplete', async ({ page }) => {
+  await openBoard(page, '/b/a-link-someone-sent-me')
+  await expect(notice(page)).toBeVisible()
+
+  // The root URL leads back to it as the recent board. It is still not the visitor's own.
+  await openBoard(page, '/')
+
+  await expect(page).toHaveURL(/a-link-someone-sent-me$/)
+  await expect(notice(page)).toBeVisible()
+})
+
+test('a board the visitor made but never drew on has no notice when reopened by its link', async ({
+  page,
+}) => {
+  await openBoard(page, '/')
+  const board = page.url()
+  await page.goto('about:blank')
+
+  await openBoard(page, board)
+  await settled(page)
+
+  await expect(notice(page)).toHaveCount(0)
+})

@@ -20,3 +20,15 @@ test('"Share" confirms the copy, then goes back to normal', async ({ page }) => 
 
   await expect(share).toHaveText('Share', { timeout: 5000 })
 })
+
+test('"Share" says so when the link could not be copied', async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.clipboard.writeText = () => Promise.reject(new Error('not allowed'))
+  })
+  await openBoard(page, '/')
+  const share = page.getByRole('button', { name: 'Share' })
+
+  await share.click()
+
+  await expect(share).toHaveText('Copy failed')
+})

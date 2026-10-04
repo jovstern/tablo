@@ -10,7 +10,7 @@ tablo is a minimal, real-time collaborative whiteboard for sketching ideas, diag
 
 pnpm is not installed globally on this machine; run it through corepack (`corepack pnpm <script>`).
 
-- `pnpm dev`: Vite dev server, which also starts the relay on port 5174 (`RELAY_PORT` to change it). `pnpm relay` runs the relay alone.
+- `pnpm dev`: Vite dev server, which also starts the relay on port 8787 (`RELAY_PORT` to change it). `pnpm relay` runs the relay alone.
 - `pnpm build`: typecheck, then production build.
 - `pnpm typecheck`: `tsc --noEmit`.
 - `pnpm lint`: ESLint, then Prettier check. `pnpm format` writes Prettier fixes.
@@ -19,7 +19,7 @@ pnpm is not installed globally on this machine; run it through corepack (`corepa
 
 ## Architecture
 
-Milestone 1 is a single-user whiteboard that runs entirely in the browser: no server, no accounts. The spec is GitHub issue #2. Use the vocabulary in `GLOSSARY.md`, and read `docs/adr/` before changing the engine or storage.
+tablo is a whiteboard that works entirely in the browser, with no accounts, and connects to a stateless relay so that everyone on the same link draws together. The specs are GitHub issues #2 (the single-user board) and #15 (collaboration). Use the vocabulary in `GLOSSARY.md`, and read `docs/adr/` before changing the engine or storage.
 
 - **Engine adapter (`src/engine/`)**: the only code allowed to import Excalidraw (ADR 0001); ESLint enforces this with `no-restricted-imports`.
   - `engine.ts` is the `Engine` interface and its types. Everything else in the app depends on this and nothing more.
@@ -29,9 +29,9 @@ Milestone 1 is a single-user whiteboard that runs entirely in the browser: no se
   - `engine.css` hides Excalidraw's own UI (the wide layout, the narrow layout it switches to below about 730px, and its right-click menu) and defines the colour filter of a dark canvas.
 - **Chrome (`src/chrome/`)**: tablo's own controls, floating over the canvas in the Dock layout and written against `Engine`. `palette.ts` is the only source of the colours and widths the chrome offers; they are stored as light-theme values and filtered for display in dark mode. Buttons use `keepCanvasFocus` so a click never takes keyboard focus from the canvas.
 - **Boards (`src/boards/`)**: ids, the `BoardStore` interface with its localStorage implementation (ADR 0002), and `useAutosave`, which is the first subscriber to `Engine.onSceneChange` (a relay would be the second). `save` returns failure as a value; a full quota surfaces as a warning in the chrome and nothing is ever evicted.
-- **Relay (`relay/`)**: a stateless Node websocket server with one room per board id (ADR 0002, 0003). It forwards frames and never reads their bodies; the wire format is documented at the top of `relay/relay.ts`. The browser finds it through `VITE_RELAY_URL`, defaulting to port 5174 on the page's host.
-- **Sync (`src/sync/`)**: `boardSync.ts` is the second subscriber to `Engine.onSceneChange`. It sends elements whose version the others do not have yet and merges what they send with `Engine.applyRemoteElements` (last writer wins per element). Tracking shared versions is also what stops a received change from being sent back. Whole scenes, tombstones included, are exchanged whenever someone joins or a connection comes back, which is the only resync mechanism. It also carries presence (identity, pointer, selection) and reports connection state to the chrome through `useBoardSync`. `identity.ts` gives each browser a name and a colour key once.
-- **Participant colours**: Excalidraw derives a cursor's colour from the id it is given and cannot be told a colour, so `src/engine/participantColour.ts` repeats its derivation for the avatars. A browser test compares cursor pixels with the avatar.
+- **Relay (`relay/`)**: a stateless Node websocket server that keeps the connections of each board apart (ADR 0002, 0003). It forwards frames and never reads their bodies, and drops connections that stop answering its pings. `relay/frame.ts` is the wire format and is shared with the browser. The browser finds the relay through `VITE_RELAY_URL`, defaulting to port 8787 on the page's host.
+- **Sync (`src/sync/`)**: `boardSync.ts` is the second subscriber to `Engine.onSceneChange`. It sends elements whose version the others do not have yet and merges what they send with `Engine.applyRemoteElements` (last writer wins per element). Tracking shared versions is also what stops a received change from being sent back. Whole scenes, tombstones included, are exchanged whenever someone joins or a connection comes back, which is the only resync mechanism. An incoming element the engine will not take yet (the visitor is editing it) is held back and offered again. `messages.ts` validates everything a participant sends, since anyone with the link can send anything. `boardSync.test.ts` runs the client against a real relay with a stand-in for the canvas. It also carries presence (identity, pointer, selection) and reports connection state to the chrome through `useBoardSync`. `identity.ts` gives each browser a name and a colour key once.
+- **Participant colours**: Excalidraw derives a cursor's colour from the id it is given and cannot be told a colour, so `src/engine/participantColour.ts` repeats its derivation for the avatars. It is the one thing the chrome uses from `src/engine/` besides the `Engine` interface. A browser test compares cursor pixels with the avatar.
 - **Routing (`src/App.tsx`)**: `/b/<id>` is a board; anything else redirects to the recent board or a new one. `Board` is keyed by id so each board gets its own canvas.
 - **Theme (`src/theme/`)**: follows the system until toggled, then remembered. It sets `dark` on `<html>` for Tailwind and is passed to the canvas.
 
