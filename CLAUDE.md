@@ -21,9 +21,20 @@ pnpm is not installed globally on this machine; run it through corepack (`corepa
 
 Milestone 1 is a single-user whiteboard that runs entirely in the browser: no server, no accounts. The spec is GitHub issue #2. Use the vocabulary in `GLOSSARY.md`, and read `docs/adr/` before changing the engine or storage.
 
-- **Engine adapter (`src/engine/`)**: the only code allowed to import Excalidraw (ADR 0001); ESLint enforces this with `no-restricted-imports`. `engine.ts` defines the `Engine` interface the rest of the app depends on, `EngineCanvas.tsx` renders the canvas and builds an `Engine` from Excalidraw's imperative API, and `engine.css` hides Excalidraw's own UI. Where Excalidraw has no public hook, the workaround belongs here.
-- **Chrome**: tablo's own controls around the canvas, written against `Engine`.
-- **Testing**: most behaviour lives in a canvas, so the main seam is the running app in Playwright. `e2e/board.ts` holds the helpers; tests read the scene through the dev-only `window.__tablo` hook and otherwise use accessible roles and names. Props passed to Excalidraw must be referentially stable, or React loops on updates.
+- **Engine adapter (`src/engine/`)**: the only code allowed to import Excalidraw (ADR 0001); ESLint enforces this with `no-restricted-imports`.
+  - `engine.ts` is the `Engine` interface and its types. Everything else in the app depends on this and nothing more.
+  - `excalidrawEngine.ts` implements `Engine` on Excalidraw's imperative API. Workarounds for what that API lacks live here and nowhere else: undo, redo and zoom press Excalidraw's own hidden buttons, undo/redo availability is read from their `disabled` state, and a sticky note's text editor is opened by sending Enter.
+  - `EngineCanvas.tsx` renders the canvas. Props passed to Excalidraw must be referentially stable, or React loops on updates.
+  - `useEngineState.ts` exposes `Engine.state()` to React as an external store. The engine subscribes to Excalidraw only while someone listens, because Excalidraw drops its subscribers when StrictMode unmounts it once.
+  - `engine.css` hides Excalidraw's own UI and defines the colour filter of a dark canvas.
+- **Chrome (`src/chrome/`)**: tablo's own controls, floating over the canvas in the Dock layout and written against `Engine`. `palette.ts` is the only source of colours and widths; they are stored as light-theme values and filtered for display in dark mode. Buttons use `keepCanvasFocus` so a click never takes keyboard focus from the canvas.
+- **Boards (`src/boards/`)**: ids, the `BoardStore` interface with its localStorage implementation (ADR 0002), and `useAutosave`, which is the first subscriber to `Engine.onSceneChange` (a relay would be the second). `save` returns failure as a value; a full quota surfaces as a warning in the chrome and nothing is ever evicted.
+- **Routing (`src/App.tsx`)**: `/b/<id>` is a board; anything else redirects to the recent board or a new one. `Board` is keyed by id so each board gets its own canvas.
+- **Theme (`src/theme/`)**: follows the system until toggled, then remembered. It sets `dark` on `<html>` for Tailwind and is passed to the canvas.
+
+## Testing
+
+Most behaviour lives in a canvas that unit tests cannot see, so the main seam is the running app in Playwright (`e2e/`). `e2e/board.ts` holds the helpers; tests read the scene through the dev-only `window.__tablo` hook and otherwise use accessible roles and names, which only find tablo's controls because Excalidraw's are `display: none`. The second seam is `BoardStore`, unit-tested with `fakeStorage`. The engine adapter has no unit tests: a fake engine would only test the fake.
 
 ## MCP servers
 
