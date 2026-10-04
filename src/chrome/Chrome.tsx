@@ -1,6 +1,6 @@
 import type { Engine } from '../engine/engine'
 import { BoardMenu } from './BoardMenu'
-import { ToolBar } from './ToolBar'
+import { Dock } from './Dock'
 
 /**
  * Every control tablo draws around the canvas. Floats above it and lets the
@@ -10,11 +10,7 @@ export function Chrome({ engine }: { engine: Engine | null }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-zinc-800">
       <BoardMenu />
-      {engine && (
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
-          <ToolBar engine={engine} />
-        </div>
-      )}
+      {engine && <Dock engine={engine} />}
     </div>
   )
 }

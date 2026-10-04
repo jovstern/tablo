@@ -11,10 +11,23 @@ export type Unsubscribe = () => void
 /** What a drag on the canvas does: select, or create one kind of element. */
 export type Tool = 'select' | 'rectangle' | 'ellipse' | 'arrow' | 'pen' | 'text'
 
+/** How an element is drawn. Colours are stored as they look in the light theme. */
+export type Style = {
+  strokeColor: string
+  fill: string
+  strokeWidth: number
+}
+
 /** What the chrome shows of the engine. A new object whenever anything in it changes. */
 export type EngineState = {
   /** The active tool, or null while the engine is in a tool the chrome does not offer. */
   tool: Tool | null
+  hasSelection: boolean
+  /**
+   * The style of the selection, or of the next element when nothing is selected.
+   * A property is null when the selected elements disagree on it.
+   */
+  style: { [K in keyof Style]: Style[K] | null }
 }
 
 /**
@@ -35,4 +48,6 @@ export interface Engine {
   onStateChange(listener: () => void): Unsubscribe
 
   setTool(tool: Tool): void
+  /** Restyles the selection, as one undoable step, and makes the style stick for the next element. */
+  applyStyle(style: Partial<Style>): void
 }

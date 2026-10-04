@@ -1,9 +1,15 @@
-import { Excalidraw, FONT_FAMILY, hashElementsVersion } from '@excalidraw/excalidraw'
+import {
+  CaptureUpdateAction,
+  Excalidraw,
+  FONT_FAMILY,
+  hashElementsVersion,
+  newElementWith,
+} from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { useCallback, useState } from 'react'
 import './engine.css'
-import type { Engine, EngineState, Scene, Tool, Unsubscribe } from './engine'
+import type { Engine, EngineState, Scene, SceneElement, Tool, Unsubscribe } from './engine'
 
 // The engine re-renders on every prop identity change, so these stay stable.
 const UI_OPTIONS = { tools: { image: false } }
@@ -28,20 +34,50 @@ const TOOLS = Object.fromEntries(
   Object.entries(ENGINE_TOOLS).map(([tool, engineTool]) => [engineTool, tool]),
 ) as Record<string, Tool | undefined>
 
-const readState = (appState: AppState): EngineState => ({
-  tool: TOOLS[appState.activeTool.type] ?? null,
-})
+type Elements = readonly SceneElement[]
 
-const sameState = (a: EngineState, b: EngineState) => a.tool === b.tool
+const isSelected = (element: SceneElement, appState: AppState) =>
+  appState.selectedElementIds[element.id] === true
+
+/** The value all the elements share, or null if they disagree. */
+const shared = <T,>(values: T[]): T | null =>
+  values.every((value) => value === values[0]) ? values[0] : null
+
+function readState(elements: Elements, appState: AppState): EngineState {
+  const selected = elements.filter((element) => isSelected(element, appState))
+  const hasSelection = selected.length > 0
+  return {
+    tool: TOOLS[appState.activeTool.type] ?? null,
+    hasSelection,
+    style: hasSelection
+      ? {
+          strokeColor: shared(selected.map((element) => element.strokeColor)),
+          fill: shared(selected.map((element) => element.backgroundColor)),
+          strokeWidth: shared(selected.map((element) => element.strokeWidth)),
+        }
+      : {
+          strokeColor: appState.currentItemStrokeColor,
+          fill: appState.currentItemBackgroundColor,
+          strokeWidth: appState.currentItemStrokeWidth,
+        },
+  }
+}
+
+const sameState = (a: EngineState, b: EngineState) =>
+  a.tool === b.tool &&
+  a.hasSelection === b.hasSelection &&
+  a.style.strokeColor === b.style.strokeColor &&
+  a.style.fill === b.style.fill &&
+  a.style.strokeWidth === b.style.strokeWidth
 
 function createEngine(api: ExcalidrawImperativeAPI): Engine {
-  let state = readState(api.getAppState())
+  let state = readState(api.getSceneElements(), api.getAppState())
   const stateListeners = new Set<() => void>()
 
   // The engine reports every change of any kind, so only pass on real ones:
   // the chrome re-renders on each, and an unguarded update loops.
-  const refresh = (appState: AppState) => {
-    const next = readState(appState)
+  const refresh = (elements: Elements, appState: AppState) => {
+    const next = readState(elements, appState)
     if (sameState(state, next)) return
     state = next
     stateListeners.forEach((listener) => listener())
@@ -68,8 +104,8 @@ function createEngine(api: ExcalidrawImperativeAPI): Engine {
     onStateChange(listener) {
       stateListeners.add(listener)
       if (stateListeners.size === 1) {
-        stopWatching = api.onChange((_elements, appState) => refresh(appState))
-        refresh(api.getAppState())
+        stopWatching = api.onChange(() => refresh(api.getSceneElements(), api.getAppState()))
+        refresh(api.getSceneElements(), api.getAppState())
       }
       return () => {
         stateListeners.delete(listener)
@@ -78,6 +114,33 @@ function createEngine(api: ExcalidrawImperativeAPI): Engine {
     },
 
     setTool: (tool) => api.setActiveTool({ type: ENGINE_TOOLS[tool] }),
+
+    applyStyle({ strokeColor, fill, strokeWidth }) {
+      const appState = api.getAppState()
+      const patch = {
+        ...(strokeColor !== undefined && { strokeColor }),
+        ...(fill !== undefined && { backgroundColor: fill }),
+        ...(strokeWidth !== undefined && { strokeWidth }),
+      }
+      const elements = api.getSceneElements().map((element) => {
+        if (isSelected(element, appState)) return newElementWith(element, patch)
+        // Text bound to a selected element follows its stroke colour, as in the engine's own UI.
+        const container = element.type === 'text' ? element.containerId : null
+        if (container && appState.selectedElementIds[container] && strokeColor !== undefined) {
+          return newElementWith(element, { strokeColor })
+        }
+        return element
+      })
+      api.updateScene({
+        elements,
+        appState: {
+          currentItemStrokeColor: strokeColor ?? appState.currentItemStrokeColor,
+          currentItemBackgroundColor: fill ?? appState.currentItemBackgroundColor,
+          currentItemStrokeWidth: strokeWidth ?? appState.currentItemStrokeWidth,
+        },
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+      })
+    },
   }
 }
 
