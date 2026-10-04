@@ -2,7 +2,7 @@ import { ArrowUpRight, Circle, MousePointer2, Pencil, Square, StickyNote, Type }
 import type { ReactNode } from 'react'
 import type { Engine, Tool } from '../engine/engine'
 import { useEngineState } from '../engine/useEngineState'
-import { INK, STICKY_NOTE_FILL } from './palette'
+import { STICKY_NOTE } from './palette'
 import { card, keepCanvasFocus } from './ui'
 
 const TOOLS: { tool: Tool; name: string; shortcut: string; icon: ReactNode }[] = [
@@ -44,7 +44,7 @@ export function ToolBar({ engine }: { engine: Engine }) {
         aria-label="Sticky note"
         title="Sticky note"
         onMouseDown={keepCanvasFocus}
-        onClick={() => engine.addStickyNote({ fill: STICKY_NOTE_FILL, ink: INK })}
+        onClick={() => engine.addStickyNote(STICKY_NOTE)}
         className={`${toolButton} hover:bg-black/5 dark:hover:bg-white/10`}
       >
         <StickyNote size={18} />

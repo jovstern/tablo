@@ -23,7 +23,7 @@ export function useAutosave(engine: Engine | null, id: string, store: BoardStore
     }, SAVE_DELAY_MS)
     // Capture the scene when it changes: by the time a flush runs on the way out,
     // the engine may already be torn down and report an empty canvas.
-    const unsubscribe = engine.onSceneChange(() => save({ elements: engine.scene() }))
+    const unsubscribe = engine.onSceneChange(() => save(engine.scene()))
     window.addEventListener('pagehide', save.flush)
     return () => {
       unsubscribe()

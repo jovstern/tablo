@@ -12,12 +12,13 @@ export const STROKE_COLOURS = [
 ]
 
 export const NO_FILL = 'transparent'
+const YELLOW = '#ffec99'
 
 export const FILLS = [
   { name: 'None', value: NO_FILL },
   { name: 'Grey', value: '#e9ecef' },
   { name: 'Red', value: '#ffc9c9' },
-  { name: 'Yellow', value: '#ffec99' },
+  { name: 'Yellow', value: YELLOW },
   { name: 'Green', value: '#b2f2bb' },
   { name: 'Blue', value: '#a5d8ff' },
   { name: 'Violet', value: '#d0bfff' },
@@ -29,4 +30,5 @@ export const STROKE_WIDTHS = [
   { name: 'Thick', value: 4 },
 ]
 
-export const STICKY_NOTE_FILL = '#ffec99'
+/** How a new sticky note looks. */
+export const STICKY_NOTE = { fill: YELLOW, ink: INK, strokeWidth: 1 }

@@ -1,8 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
-import { drag, openBoard, scene } from './board'
-
-const tool = (page: Page, name: string) =>
-  page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name, exact: true })
+import { expect, test } from '@playwright/test'
+import { drag, openBoard, scene, tool } from './board'
 
 for (const [name, type] of [
   ['Rectangle', 'rectangle'],

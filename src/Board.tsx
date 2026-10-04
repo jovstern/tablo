@@ -22,7 +22,7 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
 
   useEffect(() => {
     if (!import.meta.env.DEV || !engine) return
-    window.__tablo = { boardId: id, scene: () => [...engine.scene()] }
+    window.__tablo = { boardId: id, scene: () => [...engine.scene().elements] }
     return () => void delete window.__tablo
   }, [engine, id])
 
@@ -37,11 +37,4 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
       />
     </div>
   )
-}
-
-declare global {
-  interface Window {
-    /** Dev-only hook that lets browser tests read the scene. */
-    __tablo?: { boardId: string; scene(): unknown[] }
-  }
 }

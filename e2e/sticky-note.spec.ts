@@ -1,21 +1,21 @@
 import { expect, test, type Page } from '@playwright/test'
-import { drag, openBoard, scene } from './board'
+import { drag, openBoard, scene, tool } from './board'
 
-const tool = (page: Page, name: string) =>
-  page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name, exact: true })
 const editor = (page: Page) => page.locator('textarea')
 
-test('the sticky note tool puts a filled note at the centre of the view', async ({ page }) => {
+test('the sticky note tool puts a filled sticky note at the centre of the view', async ({
+  page,
+}) => {
   await openBoard(page)
   const { width, height } = page.viewportSize()!
 
   await tool(page, 'Sticky note').click()
   await expect(editor(page)).toBeFocused()
 
-  const [note] = await scene(page)
-  expect(note).toMatchObject({ type: 'rectangle', backgroundColor: '#ffec99', roughness: 0 })
-  expect(note.x + note.width / 2).toBeCloseTo(width / 2, 0)
-  expect(note.y + note.height / 2).toBeCloseTo(height / 2, 0)
+  const [stickyNote] = await scene(page)
+  expect(stickyNote).toMatchObject({ type: 'rectangle', backgroundColor: '#ffec99', roughness: 0 })
+  expect(stickyNote.x + stickyNote.width / 2).toBeCloseTo(width / 2, 0)
+  expect(stickyNote.y + stickyNote.height / 2).toBeCloseTo(height / 2, 0)
 })
 
 test('the visitor can type into a new sticky note at once', async ({ page }) => {
@@ -27,14 +27,14 @@ test('the visitor can type into a new sticky note at once', async ({ page }) => 
   await page.keyboard.press('Escape')
 
   const elements = await scene(page)
-  const note = elements.find((el) => el.type === 'rectangle')!
+  const stickyNote = elements.find((el) => el.type === 'rectangle')!
   expect(elements.find((el) => el.type === 'text')).toMatchObject({
     text: 'an idea',
-    containerId: note.id,
+    containerId: stickyNote.id,
   })
 })
 
-test("a sticky note's text moves with the note", async ({ page }) => {
+test("a sticky note's text moves with it", async ({ page }) => {
   await openBoard(page)
   await tool(page, 'Sticky note').click()
   await expect(editor(page)).toBeFocused()

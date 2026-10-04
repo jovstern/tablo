@@ -74,15 +74,11 @@ function readState(elements: Elements, appState: AppState, container: HTMLElemen
   }
 }
 
-const sameState = (a: EngineState, b: EngineState) =>
-  a.tool === b.tool &&
-  a.hasSelection === b.hasSelection &&
-  a.style.strokeColor === b.style.strokeColor &&
-  a.style.fill === b.style.fill &&
-  a.style.strokeWidth === b.style.strokeWidth &&
-  a.canUndo === b.canUndo &&
-  a.canRedo === b.canRedo &&
-  a.zoom === b.zoom
+const sameValues = <T extends object>(a: T, b: T) =>
+  (Object.keys(a) as (keyof T)[]).every((key) => a[key] === b[key])
+
+const sameState = ({ style: styleA, ...a }: EngineState, { style: styleB, ...b }: EngineState) =>
+  sameValues(a, b) && sameValues(styleA, styleB)
 
 /**
  * Builds tablo's Engine on Excalidraw's imperative API. `container` is the element
@@ -122,7 +118,7 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
   }
 
   return {
-    scene: () => api.getSceneElements(),
+    scene: () => ({ elements: api.getSceneElements() }),
 
     onSceneChange(listener) {
       // Compare scene versions, and take the first report (sent on start-up) as the baseline.
@@ -200,10 +196,10 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
       return new Blob([svg.outerHTML], { type: 'image/svg+xml' })
     },
 
-    addStickyNote({ fill, ink }) {
+    addStickyNote({ fill, ink, strokeWidth }) {
       const appState = api.getAppState()
       const zoom = appState.zoom.value
-      const [note] = convertToExcalidrawElements([
+      const [stickyNote] = convertToExcalidrawElements([
         {
           type: 'rectangle',
           x: appState.width / 2 / zoom - appState.scrollX - STICKY_NOTE_SIZE / 2,
@@ -212,21 +208,21 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
           height: STICKY_NOTE_SIZE,
           backgroundColor: fill,
           strokeColor: ink,
-          strokeWidth: 1,
+          strokeWidth,
           fillStyle: 'solid',
           roughness: 0,
           roundness: { type: ROUNDNESS.ADAPTIVE_RADIUS },
         },
       ])
       // The engine has no call to start editing bound text, and new text takes the
-      // current stroke colour. So: select the note with ink as the current colour,
+      // current stroke colour. So: select the sticky note with ink as the current colour,
       // press Enter for the visitor (which opens the text editor), then put the colour back.
       const strokeColor = appState.currentItemStrokeColor
       api.updateScene({
-        elements: [...api.getSceneElements(), note],
-        appState: { selectedElementIds: { [note.id]: true }, currentItemStrokeColor: ink },
+        elements: [...api.getSceneElements(), stickyNote],
+        appState: { selectedElementIds: { [stickyNote.id]: true }, currentItemStrokeColor: ink },
         // Folded into the undo step the text editor records when it closes, so that
-        // one undo removes the note whether or not anything was typed into it.
+        // one undo removes the sticky note whether or not anything was typed into it.
         captureUpdate: CaptureUpdateAction.EVENTUALLY,
       })
       requestAnimationFrame(() => {

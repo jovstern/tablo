@@ -1,8 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { drag, openBoard, scene } from './board'
+import { drag, openBoard, scene, tool } from './board'
 
-const tool = (page: Page, name: string) =>
-  page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name, exact: true })
 const styleBar = (page: Page) => page.getByRole('group', { name: 'Style' })
 const option = (page: Page, group: string, name: string) =>
   page.getByRole('radiogroup', { name: group }).getByRole('radio', { name, exact: true })

@@ -22,6 +22,9 @@ export type Style = {
   strokeWidth: number
 }
 
+/** How a new sticky note looks. `ink` colours both its outline and its text. */
+export type StickyNoteLook = { fill: string; ink: string; strokeWidth: number }
+
 /** What the chrome shows of the engine. A new object whenever anything in it changes. */
 export type EngineState = {
   /** The active tool, or null while the engine is in a tool the chrome does not offer. */
@@ -43,8 +46,8 @@ export type EngineState = {
  * and never on the engine itself.
  */
 export interface Engine {
-  /** The elements currently on the canvas, without deleted ones. */
-  scene(): readonly SceneElement[]
+  /** The scene as it is now, without deleted elements. */
+  scene(): Scene
   /**
    * Calls back whenever the scene changes. The one place scene changes leave the
    * engine: autosave listens here, and a relay would too (ADR 0002).
@@ -70,5 +73,5 @@ export interface Engine {
    * Adds a sticky note (a filled rectangle with text bound inside it) at the centre
    * of the view and puts the caret in it. The current style is left as it was.
    */
-  addStickyNote(look: { fill: string; ink: string }): void
+  addStickyNote(look: StickyNoteLook): void
 }

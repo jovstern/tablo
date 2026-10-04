@@ -35,16 +35,14 @@ export function scene(page: Page): Promise<SceneElement[]> {
   return page.evaluate(() => window.__tablo!.scene() as unknown as SceneElement[])
 }
 
+/** A button in the tool bar. */
+export const tool = (page: Page, name: string) =>
+  page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name, exact: true })
+
 /** Drags on the canvas between two viewport points. */
 export async function drag(page: Page, from: [number, number], to: [number, number]) {
   await page.mouse.move(...from)
   await page.mouse.down()
   await page.mouse.move(...to, { steps: 5 })
   await page.mouse.up()
-}
-
-declare global {
-  interface Window {
-    __tablo?: { boardId: string; scene(): unknown[] }
-  }
 }
