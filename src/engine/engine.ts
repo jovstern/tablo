@@ -49,6 +49,16 @@ export interface Engine {
   /** The scene as it is now, without deleted elements. */
   scene(): Scene
   /**
+   * The scene with its tombstones: deleted elements are kept so that the deletion
+   * reaches browsers that still hold them (ADR 0003). For sync and for saving.
+   */
+  sceneWithTombstones(): Scene
+  /**
+   * Merges elements another participant sent into the scene: per element, the
+   * higher version wins. Adds no undo step.
+   */
+  applyRemoteElements(elements: readonly SceneElement[]): void
+  /**
    * Calls back whenever the scene changes. The one place scene changes leave the
    * engine: autosave listens here, and a relay would too (ADR 0002).
    */

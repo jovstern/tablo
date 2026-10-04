@@ -10,7 +10,7 @@ tablo is a minimal, real-time collaborative whiteboard for sketching ideas, diag
 
 pnpm is not installed globally on this machine; run it through corepack (`corepack pnpm <script>`).
 
-- `pnpm dev`: Vite dev server.
+- `pnpm dev`: Vite dev server, which also starts the relay on port 5174 (`RELAY_PORT` to change it). `pnpm relay` runs the relay alone.
 - `pnpm build`: typecheck, then production build.
 - `pnpm typecheck`: `tsc --noEmit`.
 - `pnpm lint`: ESLint, then Prettier check. `pnpm format` writes Prettier fixes.
@@ -29,12 +29,14 @@ Milestone 1 is a single-user whiteboard that runs entirely in the browser: no se
   - `engine.css` hides Excalidraw's own UI (the wide layout, the narrow layout it switches to below about 730px, and its right-click menu) and defines the colour filter of a dark canvas.
 - **Chrome (`src/chrome/`)**: tablo's own controls, floating over the canvas in the Dock layout and written against `Engine`. `palette.ts` is the only source of the colours and widths the chrome offers; they are stored as light-theme values and filtered for display in dark mode. Buttons use `keepCanvasFocus` so a click never takes keyboard focus from the canvas.
 - **Boards (`src/boards/`)**: ids, the `BoardStore` interface with its localStorage implementation (ADR 0002), and `useAutosave`, which is the first subscriber to `Engine.onSceneChange` (a relay would be the second). `save` returns failure as a value; a full quota surfaces as a warning in the chrome and nothing is ever evicted.
+- **Relay (`relay/`)**: a stateless Node websocket server with one room per board id (ADR 0002, 0003). It forwards frames and never reads their bodies; the wire format is documented at the top of `relay/relay.ts`. The browser finds it through `VITE_RELAY_URL`, defaulting to port 5174 on the page's host.
+- **Sync (`src/sync/`)**: `boardSync.ts` is the second subscriber to `Engine.onSceneChange`. It sends elements whose version the others do not have yet and merges what they send with `Engine.applyRemoteElements` (last writer wins per element). Tracking shared versions is also what stops a received change from being sent back.
 - **Routing (`src/App.tsx`)**: `/b/<id>` is a board; anything else redirects to the recent board or a new one. `Board` is keyed by id so each board gets its own canvas.
 - **Theme (`src/theme/`)**: follows the system until toggled, then remembered. It sets `dark` on `<html>` for Tailwind and is passed to the canvas.
 
 ## Testing
 
-Most behaviour lives in a canvas that unit tests cannot see, so the main seam is the running app in Playwright (`e2e/`). `e2e/board.ts` holds the helpers; tests read the scene through the dev-only `window.__tablo` hook and otherwise use accessible roles and names, which only find tablo's controls because Excalidraw's are `display: none`. The second seam is `BoardStore`, unit-tested with `fakeStorage`. The engine adapter has no unit tests: a fake engine would only test the fake.
+Most behaviour lives in a canvas that unit tests cannot see, so the main seam is the running app in Playwright (`e2e/`). `e2e/board.ts` holds the helpers; tests read the scene through the dev-only `window.__tablo` hook and otherwise use accessible roles and names, which only find tablo's controls because Excalidraw's are `display: none`. Collaboration is tested with two browser contexts on one board (`twoParticipants` in `e2e/board.ts`); the test run's dev server starts its own relay on port 5185. The second seam is `BoardStore`, unit-tested with `fakeStorage`, and the third is the relay as a running server, tested with real websocket clients in `relay/relay.test.ts`. The engine adapter has no unit tests: a fake engine would only test the fake.
 
 ## MCP servers
 

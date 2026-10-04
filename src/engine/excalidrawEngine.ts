@@ -5,8 +5,11 @@ import {
   exportToSvg,
   hashElementsVersion,
   newElementWith,
+  reconcileElements,
+  restoreElements,
   ROUNDNESS,
 } from '@excalidraw/excalidraw'
+import type { RemoteExcalidrawElement } from '@excalidraw/excalidraw/data/reconcile'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import type { Engine, EngineState, SceneElement, Tool, Unsubscribe } from './engine'
 
@@ -138,6 +141,19 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
 
   return {
     scene: () => ({ elements: api.getSceneElements() }),
+    sceneWithTombstones: () => ({ elements: api.getSceneElementsIncludingDeleted() }),
+
+    applyRemoteElements(elements) {
+      const remote = restoreElements(elements, null) as RemoteExcalidrawElement[]
+      api.updateScene({
+        elements: reconcileElements(
+          api.getSceneElementsIncludingDeleted(),
+          remote,
+          api.getAppState(),
+        ),
+        captureUpdate: CaptureUpdateAction.NEVER,
+      })
+    },
 
     onSceneChange(listener) {
       // Compare scene versions, and take the first report (sent on start-up) as the baseline.

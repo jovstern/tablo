@@ -13,6 +13,10 @@ export default tseslint.config(
     languageOptions: { globals: globals.browser },
   },
   {
+    files: ['relay/**/*.ts', '*.config.ts'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     // ADR 0001: only the engine adapter may talk to the engine.
     files: ['src/**/*.{ts,tsx}', 'e2e/**/*.ts'],
     ignores: ['src/engine/**'],
