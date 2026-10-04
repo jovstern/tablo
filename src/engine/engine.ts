@@ -8,6 +8,8 @@ export type Scene = { elements: readonly SceneElement[] }
 
 export type Unsubscribe = () => void
 
+export type Theme = 'light' | 'dark'
+
 /** What a drag on the canvas does: select, or create one kind of element. */
 export type Tool = 'select' | 'rectangle' | 'ellipse' | 'arrow' | 'pen' | 'text'
 

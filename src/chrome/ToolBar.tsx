@@ -31,7 +31,9 @@ export function ToolBar({ engine }: { engine: Engine }) {
           onMouseDown={keepCanvasFocus}
           onClick={() => engine.setTool(tool)}
           className={`${toolButton} ${
-            active === tool ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-black/5'
+            active === tool
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'hover:bg-black/5 dark:hover:bg-white/10'
           }`}
         >
           {icon}
@@ -43,7 +45,7 @@ export function ToolBar({ engine }: { engine: Engine }) {
         title="Sticky note"
         onMouseDown={keepCanvasFocus}
         onClick={() => engine.addStickyNote({ fill: STICKY_NOTE_FILL, ink: INK })}
-        className={`${toolButton} hover:bg-black/5`}
+        className={`${toolButton} hover:bg-black/5 dark:hover:bg-white/10`}
       >
         <StickyNote size={18} />
       </button>

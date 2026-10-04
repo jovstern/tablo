@@ -15,8 +15,7 @@ function Options<T>(props: {
   current: T | null
   onChoose: (value: T) => void
   className: (option: Option<T>, checked: boolean) => string
-  children?: (option: Option<T>) => ReactNode
-  style?: (option: Option<T>) => React.CSSProperties
+  children: (option: Option<T>) => ReactNode
 }) {
   return (
     <div role="radiogroup" aria-label={props.label} className="flex items-center gap-1.5">
@@ -33,9 +32,8 @@ function Options<T>(props: {
             onMouseDown={keepCanvasFocus}
             onClick={() => props.onChoose(option.value)}
             className={props.className(option, checked)}
-            style={props.style?.(option)}
           >
-            {props.children?.(option)}
+            {props.children(option)}
           </button>
         )
       })}
@@ -43,18 +41,26 @@ function Options<T>(props: {
   )
 }
 
-const swatch = (option: Option<string>, checked: boolean) =>
-  `h-5 w-5 rounded-full border border-black/15 outline-offset-2 ${
-    option.value === NO_FILL ? checkerboard : ''
-  } ${checked ? 'outline-2 outline-indigo-500' : ''}`
+const swatchButton = (_: Option<string>, checked: boolean) =>
+  `grid h-5 w-5 place-items-center rounded-full outline-offset-2 ${
+    checked ? 'outline-2 outline-indigo-500' : ''
+  }`
 
-const swatchColour = (option: Option<string>) =>
-  option.value === NO_FILL ? {} : { backgroundColor: option.value }
+/** The colour itself, filtered the way the canvas filters colours in the current theme. */
+const swatch = (option: Option<string>) => (
+  <span
+    data-swatch
+    className={`h-5 w-5 rounded-full border border-black/15 [filter:var(--canvas-colour-filter)] ${
+      option.value === NO_FILL ? checkerboard : ''
+    }`}
+    style={option.value === NO_FILL ? undefined : { backgroundColor: option.value }}
+  />
+)
 
 /** Above the tool bar: stroke colour, fill and stroke width for the selection and the next element. */
 export function StyleBar({ engine }: { engine: Engine }) {
   const { style } = useEngineState(engine)
-  const separator = <span className="h-5 w-px bg-black/10" />
+  const separator = <span className="h-5 w-px bg-black/10 dark:bg-white/15" />
   return (
     <div role="group" aria-label="Style" className={`${card} flex items-center gap-4 px-4 py-2.5`}>
       <Options
@@ -62,18 +68,20 @@ export function StyleBar({ engine }: { engine: Engine }) {
         options={STROKE_COLOURS}
         current={style.strokeColor}
         onChoose={(strokeColor) => engine.applyStyle({ strokeColor })}
-        className={swatch}
-        style={swatchColour}
-      />
+        className={swatchButton}
+      >
+        {swatch}
+      </Options>
       {separator}
       <Options
         label="Fill"
         options={FILLS}
         current={style.fill}
         onChoose={(fill) => engine.applyStyle({ fill })}
-        className={swatch}
-        style={swatchColour}
-      />
+        className={swatchButton}
+      >
+        {swatch}
+      </Options>
       {separator}
       <Options
         label="Stroke width"
@@ -82,7 +90,9 @@ export function StyleBar({ engine }: { engine: Engine }) {
         onChoose={(strokeWidth) => engine.applyStyle({ strokeWidth })}
         className={(_, checked) =>
           `grid h-7 w-8 place-items-center rounded-md ${
-            checked ? 'bg-indigo-500/15 text-indigo-600' : 'hover:bg-black/5'
+            checked
+              ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'
+              : 'hover:bg-black/5 dark:hover:bg-white/10'
           }`
         }
       >

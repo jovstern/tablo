@@ -24,7 +24,7 @@ export function ZoomControls({ engine }: { engine: Engine }) {
         title="Reset zoom"
         onMouseDown={keepCanvasFocus}
         onClick={engine.resetZoom}
-        className="h-9 w-14 rounded-xl text-center text-sm tabular-nums hover:bg-black/5"
+        className="h-9 w-14 rounded-xl text-center text-sm tabular-nums hover:bg-black/5 dark:hover:bg-white/10"
       >
         {Math.round(zoom * 100)}%
       </button>

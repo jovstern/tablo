@@ -3,3 +3,13 @@
 .excalidraw .layer-ui__wrapper {
   display: none !important;
 }
+
+/* On a dark canvas the engine filters every colour in the scene. The chrome
+   applies the same filter to its palette so swatches match what gets drawn.
+   Keep in step with the engine's own --theme-filter. */
+:root {
+  --canvas-colour-filter: none;
+}
+:root.dark {
+  --canvas-colour-filter: invert(93%) hue-rotate(180deg);
+}

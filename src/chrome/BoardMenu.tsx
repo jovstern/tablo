@@ -11,7 +11,7 @@ export function BoardMenu() {
       <span className={divider} />
       <button
         type="button"
-        className="text-sm text-zinc-500 hover:text-zinc-900"
+        className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
         onClick={() => navigate(boardPath(newBoardId()))}
       >
         New board

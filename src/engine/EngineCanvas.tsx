@@ -11,7 +11,7 @@ import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { useCallback, useRef, useState } from 'react'
 import './engine.css'
-import type { Engine, EngineState, Scene, SceneElement, Tool, Unsubscribe } from './engine'
+import type { Engine, EngineState, Scene, SceneElement, Theme, Tool, Unsubscribe } from './engine'
 
 // The engine re-renders on every prop identity change, so these stay stable.
 const UI_OPTIONS = { tools: { image: false } }
@@ -233,11 +233,12 @@ function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Eng
 type Props = {
   /** The scene to start from. Read once; later changes are ignored. */
   initialScene?: Scene | null
+  theme: Theme
   onReady: (engine: Engine) => void
 }
 
 /** The canvas of a board. Fills its parent and hands back an Engine once ready. */
-export function EngineCanvas({ initialScene, onReady }: Props) {
+export function EngineCanvas({ initialScene, theme, onReady }: Props) {
   const [initialData] = useState(() => ({
     elements: initialScene?.elements ?? [],
     appState: DEFAULT_APP_STATE,
@@ -253,6 +254,7 @@ export function EngineCanvas({ initialScene, onReady }: Props) {
         excalidrawAPI={handleApi}
         UIOptions={UI_OPTIONS}
         initialData={initialData}
+        theme={theme}
         handleKeyboardGlobally
       />
     </div>
