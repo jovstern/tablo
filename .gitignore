@@ -6,3 +6,4 @@ playwright-report
 .scratch
 *.local
 .DS_Store
+.env
