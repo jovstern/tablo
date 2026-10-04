@@ -38,6 +38,7 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
       <Chrome
         engine={engine}
         saveFailure={saveFailure}
+        sync={sync}
         theme={theme}
         onToggleTheme={onToggleTheme}
       />

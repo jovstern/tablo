@@ -1,9 +1,11 @@
 import type { SaveFailure } from '../boards/useAutosave'
 import type { Engine, Theme } from '../engine/engine'
+import type { SyncState } from '../sync/boardSync'
 import { BoardMenu } from './BoardMenu'
 import { Dock } from './Dock'
 import { ExportButtons } from './ExportButtons'
 import { HistoryControls } from './HistoryControls'
+import { OfflineStatus } from './OfflineStatus'
 import { SaveWarning } from './SaveWarning'
 import { ThemeToggle } from './ThemeToggle'
 import { card, divider } from './ui'
@@ -17,22 +19,26 @@ type Props = {
   engine: Engine | null
   /** Why the board is not being saved, or null while saving works. */
   saveFailure: SaveFailure | null
+  sync: SyncState
   theme: Theme
   onToggleTheme: () => void
 }
 
-export function Chrome({ engine, saveFailure, theme, onToggleTheme }: Props) {
+export function Chrome({ engine, saveFailure, sync, theme, onToggleTheme }: Props) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-zinc-800 dark:text-zinc-100">
       <BoardMenu />
-      <div className={`${card} absolute right-4 top-4 flex h-11 items-center gap-1 px-1.5`}>
-        {engine && (
-          <>
-            <ExportButtons engine={engine} />
-            <span className={`${divider} mx-1`} />
-          </>
-        )}
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      <div className="absolute right-4 top-4 flex items-center gap-2">
+        {sync.status === 'offline' && <OfflineStatus />}
+        <div className={`${card} flex h-11 items-center gap-1 px-1.5`}>
+          {engine && (
+            <>
+              <ExportButtons engine={engine} />
+              <span className={`${divider} mx-1`} />
+            </>
+          )}
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </div>
       {engine && (
         <>

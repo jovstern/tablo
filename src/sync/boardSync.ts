@@ -1,5 +1,6 @@
 import type { Engine, SceneElement } from '../engine/engine'
-import { connectToRelay } from './relayConnection'
+import { reconnectDelay } from './reconnectDelay'
+import { connectToRelay, type RelayConnection, type RelayEvents } from './relayConnection'
 import { throttle } from './throttle'
 
 const SEND_INTERVAL_MS = 50
@@ -8,11 +9,13 @@ type Message = { type: 'scene'; elements: SceneElement[] }
 
 /** What the rest of the app sees of a board's connection. A new object on every change. */
 export type SyncState = {
+  /** `connecting` only until the first attempt succeeds or fails. */
+  status: 'connecting' | 'online' | 'offline'
   /** The ids of the other participants on the board right now. */
   otherParticipants: readonly string[]
 }
 
-export const NOT_CONNECTED: SyncState = { otherParticipants: [] }
+export const NOT_CONNECTED: SyncState = { status: 'connecting', otherParticipants: [] }
 
 export type BoardSync = { stop(): void }
 
@@ -27,7 +30,8 @@ export function startBoardSync(
   onStateChange: (state: SyncState) => void,
 ): BoardSync {
   const others = new Set<string>()
-  const report = () => onStateChange({ otherParticipants: [...others] })
+  let status: SyncState['status'] = 'connecting'
+  const report = () => onStateChange({ status, otherParticipants: [...others] })
   /**
    * The newest version of each element the others are known to have, because it
    * was sent to them or came from them. Only newer versions are sent, which is
@@ -40,8 +44,15 @@ export function startBoardSync(
     )
   markShared(engine.sceneWithTombstones().elements)
 
-  const connection = connectToRelay(relayUrl, boardId, {
+  let connection: RelayConnection | undefined
+  let failedAttempts = 0
+  let retry: ReturnType<typeof setTimeout> | undefined
+  let stopped = false
+
+  const events: RelayEvents = {
     onWelcome(_id, participants) {
+      failedAttempts = 0
+      status = 'online'
       participants.forEach((id) => others.add(id))
       report()
       // A newcomer may hold a copy with elements the others lack. The others
@@ -64,12 +75,21 @@ export function startBoardSync(
       engine.applyRemoteElements(message.elements)
     },
     onClose() {
+      if (stopped) return
+      // The board keeps working on its own. Whatever changes meanwhile is
+      // exchanged as whole scenes once a connection is back (see onWelcome).
+      status = 'offline'
       others.clear()
       report()
+      failedAttempts += 1
+      retry = setTimeout(connect, reconnectDelay(failedAttempts))
     },
-  })
+  }
+  const connect = () => {
+    connection = connectToRelay(relayUrl, boardId, events)
+  }
 
-  const send = (message: Message, to?: string) => connection.send(JSON.stringify(message), to)
+  const send = (message: Message, to?: string) => connection?.send(JSON.stringify(message), to)
 
   /** The relay keeps nothing, so a newcomer gets the board from the participants there. */
   const sendWholeScene = (to?: string) => {
@@ -89,12 +109,15 @@ export function startBoardSync(
   }, SEND_INTERVAL_MS)
 
   const unsubscribe = engine.onSceneChange(sendChanges)
+  connect()
 
   return {
     stop() {
       unsubscribe()
+      stopped = true
+      clearTimeout(retry)
       sendChanges.cancel()
-      connection.close()
+      connection?.close()
     },
   }
 }
