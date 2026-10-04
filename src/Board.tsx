@@ -18,7 +18,7 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
   const [savedScene] = useState(() => store.load(id))
 
   useEffect(() => store.setRecentBoard(id), [id, store])
-  useAutosave(engine, id, store)
+  const saveFailure = useAutosave(engine, id, store)
 
   useEffect(() => {
     if (!import.meta.env.DEV || !engine) return
@@ -29,7 +29,12 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-white dark:bg-[#121212]">
       <EngineCanvas initialScene={savedScene} theme={theme} onReady={setEngine} />
-      <Chrome engine={engine} theme={theme} onToggleTheme={onToggleTheme} />
+      <Chrome
+        engine={engine}
+        saveFailure={saveFailure}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
     </div>
   )
 }
