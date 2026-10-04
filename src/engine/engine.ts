@@ -10,6 +10,8 @@ export type Unsubscribe = () => void
 
 export type Theme = 'light' | 'dark'
 
+export type ImageFormat = 'png' | 'svg'
+
 /** What a drag on the canvas does: select, or create one kind of element. */
 export type Tool = 'select' | 'rectangle' | 'ellipse' | 'arrow' | 'pen' | 'text'
 
@@ -62,6 +64,8 @@ export interface Engine {
   zoomIn(): void
   zoomOut(): void
   resetZoom(): void
+  /** The whole scene as an image in the current theme, with a background and a margin around it. */
+  exportImage(format: ImageFormat): Promise<Blob>
   /**
    * Adds a sticky note (a filled rectangle with text bound inside it) at the centre
    * of the view and puts the caret in it. The current style is left as it was.

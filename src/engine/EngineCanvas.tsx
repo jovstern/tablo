@@ -2,6 +2,8 @@ import {
   CaptureUpdateAction,
   convertToExcalidrawElements,
   Excalidraw,
+  exportToBlob,
+  exportToSvg,
   FONT_FAMILY,
   hashElementsVersion,
   newElementWith,
@@ -37,6 +39,7 @@ const TOOLS = Object.fromEntries(
 ) as Record<string, Tool | undefined>
 
 const STICKY_NOTE_SIZE = 200
+const EXPORT_MARGIN = 24
 
 /** Sends the engine a key press as if the visitor had typed it. It listens on the document. */
 const pressKey = (key: KeyboardEventInit) =>
@@ -190,6 +193,23 @@ function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Eng
     zoomIn: () => engineButton(container, 'Zoom in')?.click(),
     zoomOut: () => engineButton(container, 'Zoom out')?.click(),
     resetZoom: () => engineButton(container, 'Reset zoom')?.click(),
+
+    async exportImage(format) {
+      const appState = api.getAppState()
+      const scene = {
+        elements: api.getSceneElements(),
+        appState: {
+          ...appState,
+          exportBackground: true,
+          exportWithDarkMode: appState.theme === 'dark',
+        },
+        files: api.getFiles(),
+        exportPadding: EXPORT_MARGIN,
+      }
+      if (format === 'png') return exportToBlob({ ...scene, mimeType: 'image/png' })
+      const svg = await exportToSvg(scene)
+      return new Blob([svg.outerHTML], { type: 'image/svg+xml' })
+    },
 
     addStickyNote({ fill, ink }) {
       const appState = api.getAppState()
