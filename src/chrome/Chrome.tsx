@@ -9,6 +9,7 @@ import { HistoryControls } from './HistoryControls'
 import { OfflineStatus } from './OfflineStatus'
 import { Participants } from './Participants'
 import { SaveWarning } from './SaveWarning'
+import { ShareButton } from './ShareButton'
 import { ThemeToggle } from './ThemeToggle'
 import { card, divider } from './ui'
 import { ZoomControls } from './ZoomControls'
@@ -36,6 +37,8 @@ export function Chrome({ engine, saveFailure, sync, identity, theme, onToggleThe
         {sync.status === 'offline' && <OfflineStatus />}
         <Participants me={identity} others={sync.others} />
         <div className={`${card} flex h-11 items-center gap-1 px-1.5`}>
+          <ShareButton />
+          <span className={`${divider} mx-1`} />
           {engine && (
             <>
               <ExportButtons engine={engine} />
