@@ -42,6 +42,7 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
         engine={engine}
         saveFailure={saveFailure}
         sync={sync}
+        identity={identity}
         theme={theme}
         onToggleTheme={onToggleTheme}
       />

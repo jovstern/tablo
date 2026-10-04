@@ -15,9 +15,11 @@ export type SyncState = {
   status: 'connecting' | 'online' | 'offline'
   /** The ids of the other participants on the board right now. */
   otherParticipants: readonly string[]
+  /** Those of them who have said who they are, which each does on arriving. */
+  others: readonly (Identity & { id: string })[]
 }
 
-export const NOT_CONNECTED: SyncState = { status: 'connecting', otherParticipants: [] }
+export const NOT_CONNECTED: SyncState = { status: 'connecting', otherParticipants: [], others: [] }
 
 export type BoardSync = { stop(): void }
 
@@ -32,14 +34,19 @@ export function startBoardSync(
   identity: Identity,
   onStateChange: (state: SyncState) => void,
 ): BoardSync {
+  let activity: Activity = { pointer: null, selectedIds: [] }
+  const others = new Set<string>()
   /** What each other participant last said of themselves, by their id. */
   const presences = new Map<string, Identity & Activity>()
   const showPresences = () =>
     engine.showParticipants([...presences].map(([id, presence]) => ({ id, ...presence })))
-  let activity: Activity = { pointer: null, selectedIds: [] }
-  const others = new Set<string>()
   let status: SyncState['status'] = 'connecting'
-  const report = () => onStateChange({ status, otherParticipants: [...others] })
+  const report = () =>
+    onStateChange({
+      status,
+      otherParticipants: [...others],
+      others: [...presences].map(([id, { name, colour }]) => ({ id, name, colour })),
+    })
   /**
    * The newest version of each element the others are known to have, because it
    * was sent to them or came from them. Only newer versions are sent, which is
@@ -76,8 +83,8 @@ export function startBoardSync(
     },
     onLeft(id) {
       others.delete(id)
-      report()
       presences.delete(id)
+      report()
       showPresences()
     },
     onMessage(from, body) {
@@ -87,8 +94,11 @@ export function startBoardSync(
         engine.applyRemoteElements(message.elements)
       } else if (message.type === 'presence') {
         const { name, colour, pointer, selectedIds } = message
+        const isNew = !presences.has(from)
         presences.set(from, { name, colour, pointer, selectedIds })
         showPresences()
+        // Pointer moves arrive many times a second; who is here changes only on arrival.
+        if (isNew) report()
       }
     },
     onClose() {
@@ -97,8 +107,8 @@ export function startBoardSync(
       // exchanged as whole scenes once a connection is back (see onWelcome).
       status = 'offline'
       others.clear()
-      report()
       presences.clear()
+      report()
       showPresences()
       failedAttempts += 1
       retry = setTimeout(connect, reconnectDelay(failedAttempts))

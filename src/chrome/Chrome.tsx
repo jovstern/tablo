@@ -1,11 +1,13 @@
 import type { SaveFailure } from '../boards/useAutosave'
 import type { Engine, Theme } from '../engine/engine'
 import type { SyncState } from '../sync/boardSync'
+import type { Identity } from '../sync/identity'
 import { BoardMenu } from './BoardMenu'
 import { Dock } from './Dock'
 import { ExportButtons } from './ExportButtons'
 import { HistoryControls } from './HistoryControls'
 import { OfflineStatus } from './OfflineStatus'
+import { Participants } from './Participants'
 import { SaveWarning } from './SaveWarning'
 import { ThemeToggle } from './ThemeToggle'
 import { card, divider } from './ui'
@@ -20,16 +22,19 @@ type Props = {
   /** Why the board is not being saved, or null while saving works. */
   saveFailure: SaveFailure | null
   sync: SyncState
+  /** How this visitor appears to the other participants. */
+  identity: Identity
   theme: Theme
   onToggleTheme: () => void
 }
 
-export function Chrome({ engine, saveFailure, sync, theme, onToggleTheme }: Props) {
+export function Chrome({ engine, saveFailure, sync, identity, theme, onToggleTheme }: Props) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-zinc-800 dark:text-zinc-100">
       <BoardMenu />
       <div className="absolute right-4 top-4 flex items-center gap-2">
         {sync.status === 'offline' && <OfflineStatus />}
+        <Participants me={identity} others={sync.others} />
         <div className={`${card} flex h-11 items-center gap-1 px-1.5`}>
           {engine && (
             <>
