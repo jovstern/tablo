@@ -22,7 +22,7 @@ export function Board({ id, store }: { id: string; store: BoardStore }) {
   return (
     <div className="relative h-full w-full overflow-hidden">
       <EngineCanvas initialScene={savedScene} onReady={setEngine} />
-      <Chrome />
+      <Chrome engine={engine} />
     </div>
   )
 }

@@ -12,6 +12,7 @@ export type SceneElement = {
   backgroundColor: string
   strokeWidth: number
   roughness: number
+  text?: string
 }
 
 /** Opens a URL and waits until the board's canvas is ready for input. */
