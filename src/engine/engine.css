@@ -1,0 +1,5 @@
+/* The chrome replaces the engine's own UI (ADR 0001). display: none also takes
+   these controls out of the accessibility tree. */
+.excalidraw .layer-ui__wrapper {
+  display: none !important;
+}

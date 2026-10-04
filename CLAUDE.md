@@ -6,9 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 tablo is a minimal, real-time collaborative whiteboard for sketching ideas, diagrams and flows in the browser.
 
-## Current state
+## Commands
 
-The repository contains no application code yet: only `README.md` and `.mcp.json` are tracked. No stack, package manager, build, lint, or test tooling has been chosen. Once those exist, document the commands (including how to run a single test) and the architecture here.
+pnpm is not installed globally on this machine; run it through corepack (`corepack pnpm <script>`).
+
+- `pnpm dev`: Vite dev server.
+- `pnpm build`: typecheck, then production build.
+- `pnpm typecheck`: `tsc --noEmit`.
+- `pnpm lint`: ESLint, then Prettier check. `pnpm format` writes Prettier fixes.
+- `pnpm test`: Vitest unit tests (`src/**/*.test.ts`). One file: `pnpm test src/path/file.test.ts`. One test: add `-t "name"`.
+- `pnpm test:e2e`: Playwright browser tests in `e2e/`, which start their own dev server on port 5183. One file: `pnpm test:e2e e2e/canvas.spec.ts`. One test: add `-g "name"`.
+
+## Architecture
+
+Milestone 1 is a single-user whiteboard that runs entirely in the browser: no server, no accounts. The spec is GitHub issue #2. Use the vocabulary in `GLOSSARY.md`, and read `docs/adr/` before changing the engine or storage.
+
+- **Engine adapter (`src/engine/`)**: the only code allowed to import Excalidraw (ADR 0001); ESLint enforces this with `no-restricted-imports`. `engine.ts` defines the `Engine` interface the rest of the app depends on, `EngineCanvas.tsx` renders the canvas and builds an `Engine` from Excalidraw's imperative API, and `engine.css` hides Excalidraw's own UI. Where Excalidraw has no public hook, the workaround belongs here.
+- **Chrome**: tablo's own controls around the canvas, written against `Engine`.
+- **Testing**: most behaviour lives in a canvas, so the main seam is the running app in Playwright. `e2e/board.ts` holds the helpers; tests read the scene through the dev-only `window.__tablo` hook and otherwise use accessible roles and names. Props passed to Excalidraw must be referentially stable, or React loops on updates.
 
 ## MCP servers
 
