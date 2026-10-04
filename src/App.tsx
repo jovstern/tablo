@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 import { Board } from './Board'
-import { boardPath, newBoardId } from './boards/boardId'
+import { boardPath } from './boards/boardId'
+import { homeBoardId } from './boards/homeBoard'
 import { localStorageBoardStore } from './boards/localStorageBoardStore'
 import { useTheme } from './theme/useTheme'
 
@@ -15,7 +16,7 @@ function BoardRoute() {
 
 /** The root URL: back to the recent board, or on to a new one. */
 function Home() {
-  return <Navigate to={boardPath(store.recentBoard() ?? newBoardId())} replace />
+  return <Navigate to={boardPath(homeBoardId(store))} replace />
 }
 
 export function App() {
