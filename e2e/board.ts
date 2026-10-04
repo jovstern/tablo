@@ -17,7 +17,15 @@ export type SceneElement = {
 /** Opens a URL and waits until the board's canvas is ready for input. */
 export async function openBoard(page: Page, url = '/') {
   await page.goto(url)
-  await page.waitForFunction(() => window.__tablo !== undefined)
+  await waitForBoard(page)
+}
+
+/** Waits until the board at the current URL is ready for input. */
+export async function waitForBoard(page: Page) {
+  await page.waitForFunction(
+    (path) => window.__tablo !== undefined && window.__tablo.boardId === path.split('/b/')[1],
+    new URL(page.url()).pathname,
+  )
 }
 
 /** The scene as the engine currently holds it. */
@@ -35,6 +43,6 @@ export async function drag(page: Page, from: [number, number], to: [number, numb
 
 declare global {
   interface Window {
-    __tablo?: { scene(): unknown[] }
+    __tablo?: { boardId: string; scene(): unknown[] }
   }
 }
