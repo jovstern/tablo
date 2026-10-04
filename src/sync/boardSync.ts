@@ -44,10 +44,14 @@ export function startBoardSync(
     onWelcome(_id, participants) {
       participants.forEach((id) => others.add(id))
       report()
+      // A newcomer may hold a copy with elements the others lack. The others
+      // each send theirs in reply to the relay's announcement (see onJoined).
+      if (participants.length > 0) sendWholeScene()
     },
     onJoined(id) {
       others.add(id)
       report()
+      sendWholeScene(id)
     },
     onLeft(id) {
       others.delete(id)
@@ -66,6 +70,14 @@ export function startBoardSync(
   })
 
   const send = (message: Message, to?: string) => connection.send(JSON.stringify(message), to)
+
+  /** The relay keeps nothing, so a newcomer gets the board from the participants there. */
+  const sendWholeScene = (to?: string) => {
+    const { elements } = engine.sceneWithTombstones()
+    if (elements.length === 0) return
+    markShared(elements)
+    send({ type: 'scene', elements: [...elements] }, to)
+  }
 
   const sendChanges = throttle(() => {
     const changed = engine

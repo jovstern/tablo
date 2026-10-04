@@ -51,14 +51,20 @@ export async function drag(page: Page, from: [number, number], to: [number, numb
 export const otherParticipants = (page: Page) =>
   page.evaluate(() => window.__tablo!.otherParticipants())
 
+/** Another visitor, in a browser of their own with its own storage, opening a board link. */
+export async function openParticipant(browser: Browser, url: string): Promise<Page> {
+  const page = await (await browser.newContext()).newPage()
+  await openBoard(page, url)
+  return page
+}
+
 /**
  * Two participants on one board, each in a browser of their own, both connected
  * and aware of each other. The first uses the given page and creates the board.
  */
 export async function twoParticipants(page: Page, browser: Browser): Promise<[Page, Page]> {
   await openBoard(page, '/')
-  const second = await (await browser.newContext()).newPage()
-  await openBoard(second, page.url())
+  const second = await openParticipant(browser, page.url())
   for (const participant of [page, second]) {
     await participant.waitForFunction(() => window.__tablo!.otherParticipants() === 1)
   }
