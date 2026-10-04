@@ -28,3 +28,5 @@ export const STROKE_WIDTHS = [
   { name: 'Medium', value: 2 },
   { name: 'Thick', value: 4 },
 ]
+
+export const STICKY_NOTE_FILL = '#ffec99'

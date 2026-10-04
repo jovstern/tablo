@@ -50,4 +50,9 @@ export interface Engine {
   setTool(tool: Tool): void
   /** Restyles the selection, as one undoable step, and makes the style stick for the next element. */
   applyStyle(style: Partial<Style>): void
+  /**
+   * Adds a sticky note (a filled rectangle with text bound inside it) at the centre
+   * of the view and puts the caret in it. The current style is left as it was.
+   */
+  addStickyNote(look: { fill: string; ink: string }): void
 }

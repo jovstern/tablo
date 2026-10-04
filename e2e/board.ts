@@ -13,6 +13,7 @@ export type SceneElement = {
   strokeWidth: number
   roughness: number
   text?: string
+  containerId?: string | null
 }
 
 /** Opens a URL and waits until the board's canvas is ready for input. */

@@ -1,9 +1,11 @@
 import {
   CaptureUpdateAction,
+  convertToExcalidrawElements,
   Excalidraw,
   FONT_FAMILY,
   hashElementsVersion,
   newElementWith,
+  ROUNDNESS,
 } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
@@ -33,6 +35,12 @@ const ENGINE_TOOLS = {
 const TOOLS = Object.fromEntries(
   Object.entries(ENGINE_TOOLS).map(([tool, engineTool]) => [engineTool, tool]),
 ) as Record<string, Tool | undefined>
+
+const STICKY_NOTE_SIZE = 200
+
+/** Sends the engine a key press as if the visitor had typed it. It listens on the document. */
+const pressKey = (key: KeyboardEventInit) =>
+  document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...key }))
 
 type Elements = readonly SceneElement[]
 
@@ -139,6 +147,43 @@ function createEngine(api: ExcalidrawImperativeAPI): Engine {
           currentItemStrokeWidth: strokeWidth ?? appState.currentItemStrokeWidth,
         },
         captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+      })
+    },
+
+    addStickyNote({ fill, ink }) {
+      const appState = api.getAppState()
+      const zoom = appState.zoom.value
+      const [note] = convertToExcalidrawElements([
+        {
+          type: 'rectangle',
+          x: appState.width / 2 / zoom - appState.scrollX - STICKY_NOTE_SIZE / 2,
+          y: appState.height / 2 / zoom - appState.scrollY - STICKY_NOTE_SIZE / 2,
+          width: STICKY_NOTE_SIZE,
+          height: STICKY_NOTE_SIZE,
+          backgroundColor: fill,
+          strokeColor: ink,
+          strokeWidth: 1,
+          fillStyle: 'solid',
+          roughness: 0,
+          roundness: { type: ROUNDNESS.ADAPTIVE_RADIUS },
+        },
+      ])
+      // The engine has no call to start editing bound text, and new text takes the
+      // current stroke colour. So: select the note with ink as the current colour,
+      // press Enter for the visitor (which opens the text editor), then put the colour back.
+      const strokeColor = appState.currentItemStrokeColor
+      api.updateScene({
+        elements: [...api.getSceneElements(), note],
+        appState: { selectedElementIds: { [note.id]: true }, currentItemStrokeColor: ink },
+        // Folded into the undo step the text editor records when it closes, so that
+        // one undo removes the note whether or not anything was typed into it.
+        captureUpdate: CaptureUpdateAction.EVENTUALLY,
+      })
+      requestAnimationFrame(() => {
+        pressKey({ key: 'Enter' })
+        requestAnimationFrame(() =>
+          api.updateScene({ appState: { currentItemStrokeColor: strokeColor } }),
+        )
       })
     },
   }
