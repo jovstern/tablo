@@ -22,9 +22,9 @@ export async function openBoard(page: Page, url = '/') {
 
 /** Waits until the board at the current URL is ready for input. */
 export async function waitForBoard(page: Page) {
+  // Compare against the live URL: the root URL redirects on the client after load.
   await page.waitForFunction(
-    (path) => window.__tablo !== undefined && window.__tablo.boardId === path.split('/b/')[1],
-    new URL(page.url()).pathname,
+    () => window.__tablo !== undefined && location.pathname === `/b/${window.__tablo.boardId}`,
   )
 }
 
