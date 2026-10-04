@@ -4,6 +4,9 @@ import type { MouseEvent } from 'react'
 export const card =
   'pointer-events-auto rounded-2xl border border-black/10 bg-white/90 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur'
 
+export const iconButton =
+  'grid h-9 w-9 place-items-center rounded-xl enabled:hover:bg-black/5 disabled:opacity-30'
+
 export const divider = 'h-4 w-px bg-black/10'
 
 /**

@@ -24,8 +24,12 @@ test('elements are drawn with clean strokes', async ({ page }) => {
 test("none of the engine's own controls are offered", async ({ page }) => {
   await openBoard(page)
 
-  for (const name of ['Help', 'Library', 'Zoom in', 'Undo', 'Insert image']) {
+  for (const name of ['Help', 'Library', 'Insert image']) {
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
+  }
+  // Controls tablo also offers appear once: its own, not the engine's as well.
+  for (const name of ['Undo', 'Redo']) {
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(1)
   }
   await expect(page.getByRole('radio')).toHaveCount(0)
   await expect(page.getByText('Drawings are saved in your browser')).toHaveCount(0)

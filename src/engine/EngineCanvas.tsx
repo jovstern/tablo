@@ -9,7 +9,7 @@ import {
 } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import './engine.css'
 import type { Engine, EngineState, Scene, SceneElement, Tool, Unsubscribe } from './engine'
 
@@ -42,6 +42,17 @@ const STICKY_NOTE_SIZE = 200
 const pressKey = (key: KeyboardEventInit) =>
   document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...key }))
 
+/**
+ * The engine has no public call for some of what its own UI can do (undo, redo)
+ * and no way to ask whether they are available. Its own buttons are still in the
+ * DOM, only hidden, so the adapter presses and reads those.
+ */
+const engineButton = (container: HTMLElement, name: string) =>
+  container.querySelector<HTMLButtonElement>(`.layer-ui__wrapper button[aria-label="${name}"]`)
+
+const canPress = (container: HTMLElement, name: string) =>
+  engineButton(container, name)?.disabled === false
+
 type Elements = readonly SceneElement[]
 
 const isSelected = (element: SceneElement, appState: AppState) =>
@@ -51,7 +62,7 @@ const isSelected = (element: SceneElement, appState: AppState) =>
 const shared = <T,>(values: T[]): T | null =>
   values.every((value) => value === values[0]) ? values[0] : null
 
-function readState(elements: Elements, appState: AppState): EngineState {
+function readState(elements: Elements, appState: AppState, container: HTMLElement): EngineState {
   const selected = elements.filter((element) => isSelected(element, appState))
   const hasSelection = selected.length > 0
   return {
@@ -68,6 +79,8 @@ function readState(elements: Elements, appState: AppState): EngineState {
           fill: appState.currentItemBackgroundColor,
           strokeWidth: appState.currentItemStrokeWidth,
         },
+    canUndo: canPress(container, 'Undo'),
+    canRedo: canPress(container, 'Redo'),
   }
 }
 
@@ -76,23 +89,42 @@ const sameState = (a: EngineState, b: EngineState) =>
   a.hasSelection === b.hasSelection &&
   a.style.strokeColor === b.style.strokeColor &&
   a.style.fill === b.style.fill &&
-  a.style.strokeWidth === b.style.strokeWidth
+  a.style.strokeWidth === b.style.strokeWidth &&
+  a.canUndo === b.canUndo &&
+  a.canRedo === b.canRedo
 
-function createEngine(api: ExcalidrawImperativeAPI): Engine {
-  let state = readState(api.getSceneElements(), api.getAppState())
+function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Engine {
+  const read = () => readState(api.getSceneElements(), api.getAppState(), container)
+  let state = read()
   const stateListeners = new Set<() => void>()
 
   // The engine reports every change of any kind, so only pass on real ones:
   // the chrome re-renders on each, and an unguarded update loops.
-  const refresh = (elements: Elements, appState: AppState) => {
-    const next = readState(elements, appState)
+  const refresh = () => {
+    const next = read()
     if (sameState(state, next)) return
     state = next
     stateListeners.forEach((listener) => listener())
   }
-  // Subscribed only while someone listens. The engine drops its subscribers when
+
+  // Watches only while someone listens. The engine drops its subscribers when
   // it unmounts, which React's StrictMode makes it do once right after mounting.
   let stopWatching: Unsubscribe | undefined
+  const watch = (): Unsubscribe => {
+    const stopChanges = api.onChange(refresh)
+    // The engine's own buttons re-render on their own schedule, after it reports a change.
+    const buttons = new MutationObserver(refresh)
+    buttons.observe(container, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['disabled'],
+    })
+    return () => {
+      stopChanges()
+      buttons.disconnect()
+    }
+  }
 
   return {
     scene: () => api.getSceneElements(),
@@ -112,8 +144,8 @@ function createEngine(api: ExcalidrawImperativeAPI): Engine {
     onStateChange(listener) {
       stateListeners.add(listener)
       if (stateListeners.size === 1) {
-        stopWatching = api.onChange(() => refresh(api.getSceneElements(), api.getAppState()))
-        refresh(api.getSceneElements(), api.getAppState())
+        stopWatching = watch()
+        refresh()
       }
       return () => {
         stateListeners.delete(listener)
@@ -149,6 +181,9 @@ function createEngine(api: ExcalidrawImperativeAPI): Engine {
         captureUpdate: CaptureUpdateAction.IMMEDIATELY,
       })
     },
+
+    undo: () => engineButton(container, 'Undo')?.click(),
+    redo: () => engineButton(container, 'Redo')?.click(),
 
     addStickyNote({ fill, ink }) {
       const appState = api.getAppState()
@@ -201,16 +236,19 @@ export function EngineCanvas({ initialScene, onReady }: Props) {
     elements: initialScene?.elements ?? [],
     appState: DEFAULT_APP_STATE,
   }))
+  const container = useRef<HTMLDivElement>(null)
   const handleApi = useCallback(
-    (api: ExcalidrawImperativeAPI) => onReady(createEngine(api)),
+    (api: ExcalidrawImperativeAPI) => onReady(createEngine(api, container.current!)),
     [onReady],
   )
   return (
-    <Excalidraw
-      excalidrawAPI={handleApi}
-      UIOptions={UI_OPTIONS}
-      initialData={initialData}
-      handleKeyboardGlobally
-    />
+    <div ref={container} className="h-full w-full">
+      <Excalidraw
+        excalidrawAPI={handleApi}
+        UIOptions={UI_OPTIONS}
+        initialData={initialData}
+        handleKeyboardGlobally
+      />
+    </div>
   )
 }
