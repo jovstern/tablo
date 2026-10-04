@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useState } from 'react'
 import type { Theme } from '../engine/engine'
 
 const THEME_KEY = 'tablo:theme'
@@ -18,7 +18,8 @@ function initialTheme(storage: Storage): Theme {
 export function useTheme(storage: Storage): [Theme, () => void] {
   const [theme, setTheme] = useState(() => initialTheme(storage))
 
-  useEffect(() => {
+  // Before paint, so a dark board never flashes light chrome on load.
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 

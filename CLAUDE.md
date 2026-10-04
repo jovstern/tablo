@@ -23,10 +23,10 @@ Milestone 1 is a single-user whiteboard that runs entirely in the browser: no se
 
 - **Engine adapter (`src/engine/`)**: the only code allowed to import Excalidraw (ADR 0001); ESLint enforces this with `no-restricted-imports`.
   - `engine.ts` is the `Engine` interface and its types. Everything else in the app depends on this and nothing more.
-  - `excalidrawEngine.ts` implements `Engine` on Excalidraw's imperative API. Workarounds for what that API lacks live here and nowhere else: undo, redo and zoom press Excalidraw's own hidden buttons, undo/redo availability is read from their `disabled` state, and a sticky note's text editor is opened by sending Enter.
-  - `EngineCanvas.tsx` renders the canvas. Props passed to Excalidraw must be referentially stable, or React loops on updates.
+  - `excalidrawEngine.ts` implements `Engine` on Excalidraw's imperative API. Workarounds for what that API lacks live here and nowhere else: undo and redo press Excalidraw's own hidden buttons, their availability is read from those buttons' `disabled` state, and a sticky note's text editor is opened by sending Enter.
+  - `EngineCanvas.tsx` renders the canvas, pins Excalidraw's view and zen modes off, and swallows the shortcuts that open Excalidraw's own dialogs. Props passed to Excalidraw must be referentially stable, or React loops on updates.
   - `useEngineState.ts` exposes `Engine.state()` to React as an external store. The engine subscribes to Excalidraw only while someone listens, because Excalidraw drops its subscribers when StrictMode unmounts it once.
-  - `engine.css` hides Excalidraw's own UI and defines the colour filter of a dark canvas.
+  - `engine.css` hides Excalidraw's own UI (the wide layout, the narrow layout it switches to below about 730px, and its right-click menu) and defines the colour filter of a dark canvas.
 - **Chrome (`src/chrome/`)**: tablo's own controls, floating over the canvas in the Dock layout and written against `Engine`. `palette.ts` is the only source of the colours and widths the chrome offers; they are stored as light-theme values and filtered for display in dark mode. Buttons use `keepCanvasFocus` so a click never takes keyboard focus from the canvas.
 - **Boards (`src/boards/`)**: ids, the `BoardStore` interface with its localStorage implementation (ADR 0002), and `useAutosave`, which is the first subscriber to `Engine.onSceneChange` (a relay would be the second). `save` returns failure as a value; a full quota surfaces as a warning in the chrome and nothing is ever evicted.
 - **Routing (`src/App.tsx`)**: `/b/<id>` is a board; anything else redirects to the recent board or a new one. `Board` is keyed by id so each board gets its own canvas.

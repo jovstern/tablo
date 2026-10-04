@@ -31,16 +31,20 @@ const pressKey = (key: KeyboardEventInit) =>
   document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...key }))
 
 /**
- * The engine has no public call for some of what its own UI can do (undo, redo,
- * zooming about the centre of the view) and no way to ask whether undo and redo
- * are available. Its own buttons are still in the
- * DOM, only hidden, so the adapter presses and reads those.
+ * The engine has no public call for undo or redo and no way to ask whether they
+ * are available. Its own buttons are still in the DOM, only hidden, so the adapter
+ * presses and reads those. They sit in different places in the engine's wide and
+ * narrow layouts, so look in the whole container.
  */
 const engineButton = (container: HTMLElement, name: string) =>
-  container.querySelector<HTMLButtonElement>(`.layer-ui__wrapper button[aria-label="${name}"]`)
+  container.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)
 
 const canPress = (container: HTMLElement, name: string) =>
   engineButton(container, name)?.disabled === false
+
+const ZOOM_STEP = 0.1
+const MIN_ZOOM = 0.1
+const MAX_ZOOM = 30
 
 type Elements = readonly SceneElement[]
 
@@ -96,6 +100,21 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
     if (sameState(state, next)) return
     state = next
     stateListeners.forEach((listener) => listener())
+  }
+
+  /** Zooms about the centre of the view: the scene point there stays where it is. */
+  const zoomTo = (level: number) => {
+    const { zoom, scrollX, scrollY, width, height } = api.getAppState()
+    // Rounded so that repeated steps land on whole percentages.
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(level * 100) / 100))
+    const shift = (size: number) => size / 2 / next - size / 2 / zoom.value
+    api.updateScene({
+      appState: {
+        zoom: { value: next as typeof zoom.value },
+        scrollX: scrollX + shift(width),
+        scrollY: scrollY + shift(height),
+      },
+    })
   }
 
   // Watches only while someone listens. The engine drops its subscribers when
@@ -175,9 +194,9 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
 
     undo: () => engineButton(container, 'Undo')?.click(),
     redo: () => engineButton(container, 'Redo')?.click(),
-    zoomIn: () => engineButton(container, 'Zoom in')?.click(),
-    zoomOut: () => engineButton(container, 'Zoom out')?.click(),
-    resetZoom: () => engineButton(container, 'Reset zoom')?.click(),
+    zoomIn: () => zoomTo(api.getAppState().zoom.value + ZOOM_STEP),
+    zoomOut: () => zoomTo(api.getAppState().zoom.value - ZOOM_STEP),
+    resetZoom: () => zoomTo(1),
 
     async exportImage(format) {
       const appState = api.getAppState()

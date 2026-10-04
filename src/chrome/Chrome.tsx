@@ -36,7 +36,8 @@ export function Chrome({ engine, saveFailure, theme, onToggleTheme }: Props) {
       </div>
       {engine && (
         <>
-          <div className="absolute bottom-4 left-4 flex items-center gap-2">
+          {/* In a narrow window the tool bar needs the bottom edge to itself. */}
+          <div className="absolute bottom-4 left-4 flex items-center gap-2 max-lg:bottom-auto max-lg:top-[4.5rem]">
             <ZoomControls engine={engine} />
             <HistoryControls engine={engine} />
           </div>

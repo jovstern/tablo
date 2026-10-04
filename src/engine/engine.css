@@ -1,6 +1,13 @@
 /* The chrome replaces the engine's own UI (ADR 0001). display: none also takes
    these controls out of the accessibility tree. */
-.excalidraw .layer-ui__wrapper {
+/* The second and third selectors are the bars of the engine's narrow-window layout,
+   the rest its right-click menu, wherever it is mounted. */
+.excalidraw .layer-ui__wrapper,
+.excalidraw .App-top-bar,
+.excalidraw .App-bottom-bar,
+.excalidraw .excalidraw-contextMenuContainer,
+.excalidraw .popover:has(.context-menu),
+.context-menu {
   display: none !important;
 }
 
