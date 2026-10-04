@@ -30,6 +30,8 @@ export type EngineState = {
   style: { [K in keyof Style]: Style[K] | null }
   canUndo: boolean
   canRedo: boolean
+  /** The zoom level, where 1 is 100%. */
+  zoom: number
 }
 
 /**
@@ -54,6 +56,10 @@ export interface Engine {
   applyStyle(style: Partial<Style>): void
   undo(): void
   redo(): void
+  /** Zooming keeps the centre of the view fixed. */
+  zoomIn(): void
+  zoomOut(): void
+  resetZoom(): void
   /**
    * Adds a sticky note (a filled rectangle with text bound inside it) at the centre
    * of the view and puts the caret in it. The current style is left as it was.

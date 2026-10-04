@@ -43,8 +43,9 @@ const pressKey = (key: KeyboardEventInit) =>
   document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...key }))
 
 /**
- * The engine has no public call for some of what its own UI can do (undo, redo)
- * and no way to ask whether they are available. Its own buttons are still in the
+ * The engine has no public call for some of what its own UI can do (undo, redo,
+ * zooming about the centre of the view) and no way to ask whether undo and redo
+ * are available. Its own buttons are still in the
  * DOM, only hidden, so the adapter presses and reads those.
  */
 const engineButton = (container: HTMLElement, name: string) =>
@@ -81,6 +82,7 @@ function readState(elements: Elements, appState: AppState, container: HTMLElemen
         },
     canUndo: canPress(container, 'Undo'),
     canRedo: canPress(container, 'Redo'),
+    zoom: appState.zoom.value,
   }
 }
 
@@ -91,7 +93,8 @@ const sameState = (a: EngineState, b: EngineState) =>
   a.style.fill === b.style.fill &&
   a.style.strokeWidth === b.style.strokeWidth &&
   a.canUndo === b.canUndo &&
-  a.canRedo === b.canRedo
+  a.canRedo === b.canRedo &&
+  a.zoom === b.zoom
 
 function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Engine {
   const read = () => readState(api.getSceneElements(), api.getAppState(), container)
@@ -184,6 +187,9 @@ function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Eng
 
     undo: () => engineButton(container, 'Undo')?.click(),
     redo: () => engineButton(container, 'Redo')?.click(),
+    zoomIn: () => engineButton(container, 'Zoom in')?.click(),
+    zoomOut: () => engineButton(container, 'Zoom out')?.click(),
+    resetZoom: () => engineButton(container, 'Reset zoom')?.click(),
 
     addStickyNote({ fill, ink }) {
       const appState = api.getAppState()

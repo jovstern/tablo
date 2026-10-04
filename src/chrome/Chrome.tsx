@@ -2,6 +2,7 @@ import type { Engine } from '../engine/engine'
 import { BoardMenu } from './BoardMenu'
 import { Dock } from './Dock'
 import { HistoryControls } from './HistoryControls'
+import { ZoomControls } from './ZoomControls'
 
 /**
  * Every control tablo draws around the canvas. Floats above it and lets the
@@ -14,6 +15,7 @@ export function Chrome({ engine }: { engine: Engine | null }) {
       {engine && (
         <>
           <div className="absolute bottom-4 left-4 flex items-center gap-2">
+            <ZoomControls engine={engine} />
             <HistoryControls engine={engine} />
           </div>
           <Dock engine={engine} />
