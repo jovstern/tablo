@@ -25,6 +25,19 @@ export type Style = {
 /** How a new sticky note looks. `ink` colours both its outline and its text. */
 export type StickyNoteLook = { fill: string; ink: string; strokeWidth: number }
 
+/** A point on the canvas, in scene coordinates. */
+export type Point = { x: number; y: number }
+
+/** What this visitor is doing on the canvas that other participants get to see. */
+export type Activity = {
+  /** Where the pointer is, or null until it has been over the canvas. */
+  pointer: Point | null
+  selectedIds: readonly string[]
+}
+
+/** Another participant, as the canvas draws them: a named cursor and their selection. */
+export type ShownParticipant = Activity & { id: string; name: string; colour: string }
+
 /** What the chrome shows of the engine. A new object whenever anything in it changes. */
 export type EngineState = {
   /** The active tool, or null while the engine is in a tool the chrome does not offer. */
@@ -58,6 +71,12 @@ export interface Engine {
    * higher version wins. Adds no undo step.
    */
   applyRemoteElements(elements: readonly SceneElement[]): void
+  /** Calls back when this visitor's pointer moves over the canvas or their selection changes. */
+  onActivity(listener: (activity: Activity) => void): Unsubscribe
+  /** Replaces the other participants the canvas draws. */
+  showParticipants(participants: readonly ShownParticipant[]): void
+  /** The other participants the canvas is drawing. */
+  shownParticipants(): ShownParticipant[]
   /**
    * Calls back whenever the scene changes. The one place scene changes leave the
    * engine: autosave listens here, and a relay would too (ADR 0002).

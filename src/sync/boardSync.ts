@@ -1,11 +1,13 @@
-import type { Engine, SceneElement } from '../engine/engine'
+import type { Activity, Engine, SceneElement } from '../engine/engine'
+import type { Identity } from './identity'
 import { reconnectDelay } from './reconnectDelay'
 import { connectToRelay, type RelayConnection, type RelayEvents } from './relayConnection'
 import { throttle } from './throttle'
 
 const SEND_INTERVAL_MS = 50
 
-type Message = { type: 'scene'; elements: SceneElement[] }
+type Message =
+  { type: 'scene'; elements: SceneElement[] } | ({ type: 'presence' } & Identity & Activity)
 
 /** What the rest of the app sees of a board's connection. A new object on every change. */
 export type SyncState = {
@@ -27,8 +29,14 @@ export function startBoardSync(
   engine: Engine,
   boardId: string,
   relayUrl: string,
+  identity: Identity,
   onStateChange: (state: SyncState) => void,
 ): BoardSync {
+  /** What each other participant last said of themselves, by their id. */
+  const presences = new Map<string, Identity & Activity>()
+  const showPresences = () =>
+    engine.showParticipants([...presences].map(([id, presence]) => ({ id, ...presence })))
+  let activity: Activity = { pointer: null, selectedIds: [] }
   const others = new Set<string>()
   let status: SyncState['status'] = 'connecting'
   const report = () => onStateChange({ status, otherParticipants: [...others] })
@@ -58,21 +66,30 @@ export function startBoardSync(
       // A newcomer may hold a copy with elements the others lack. The others
       // each send theirs in reply to the relay's announcement (see onJoined).
       if (participants.length > 0) sendWholeScene()
+      sendPresence()
     },
     onJoined(id) {
       others.add(id)
       report()
       sendWholeScene(id)
+      sendPresence(id)
     },
     onLeft(id) {
       others.delete(id)
       report()
+      presences.delete(id)
+      showPresences()
     },
-    onMessage(_from, body) {
+    onMessage(from, body) {
       const message = JSON.parse(body) as Message
-      if (message.type !== 'scene') return
-      markShared(message.elements)
-      engine.applyRemoteElements(message.elements)
+      if (message.type === 'scene') {
+        markShared(message.elements)
+        engine.applyRemoteElements(message.elements)
+      } else if (message.type === 'presence') {
+        const { name, colour, pointer, selectedIds } = message
+        presences.set(from, { name, colour, pointer, selectedIds })
+        showPresences()
+      }
     },
     onClose() {
       if (stopped) return
@@ -81,6 +98,8 @@ export function startBoardSync(
       status = 'offline'
       others.clear()
       report()
+      presences.clear()
+      showPresences()
       failedAttempts += 1
       retry = setTimeout(connect, reconnectDelay(failedAttempts))
     },
@@ -108,15 +127,24 @@ export function startBoardSync(
     send({ type: 'scene', elements: changed })
   }, SEND_INTERVAL_MS)
 
-  const unsubscribe = engine.onSceneChange(sendChanges)
+  const sendPresence = (to?: string) => send({ type: 'presence', ...identity, ...activity }, to)
+  const sendActivity = throttle(() => sendPresence(), SEND_INTERVAL_MS)
+
+  const stopSceneChanges = engine.onSceneChange(sendChanges)
+  const stopActivity = engine.onActivity((next) => {
+    activity = next
+    sendActivity()
+  })
   connect()
 
   return {
     stop() {
-      unsubscribe()
+      stopSceneChanges()
+      stopActivity()
       stopped = true
       clearTimeout(retry)
       sendChanges.cancel()
+      sendActivity.cancel()
       connection?.close()
     },
   }

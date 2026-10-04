@@ -4,7 +4,7 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './engine.css'
 import type { Engine, Scene, Theme } from './engine'
-import { createEngine } from './excalidrawEngine'
+import { createEngine, createPointerMoves } from './excalidrawEngine'
 
 // The engine re-renders on every prop identity change, so these stay stable.
 const UI_OPTIONS = { tools: { image: false } }
@@ -47,9 +47,15 @@ export function EngineCanvas({ initialScene, theme, onReady }: Props) {
     appState: DEFAULT_APP_STATE,
   }))
   const container = useRef<HTMLDivElement>(null)
+  const [pointerMoves] = useState(createPointerMoves)
   const handleApi = useCallback(
-    (api: ExcalidrawImperativeAPI) => onReady(createEngine(api, container.current!)),
-    [onReady],
+    (api: ExcalidrawImperativeAPI) => onReady(createEngine(api, container.current!, pointerMoves)),
+    [onReady, pointerMoves],
+  )
+  const handlePointer = useCallback(
+    ({ pointer }: { pointer: { x: number; y: number } }) =>
+      pointerMoves.publish({ x: pointer.x, y: pointer.y }),
+    [pointerMoves],
   )
   useEffect(() => {
     const swallow = (event: KeyboardEvent) => {
@@ -67,6 +73,9 @@ export function EngineCanvas({ initialScene, theme, onReady }: Props) {
         UIOptions={UI_OPTIONS}
         initialData={initialData}
         theme={theme}
+        onPointerUpdate={handlePointer}
+        // Collaboration is always on: every board connects to the relay when opened.
+        isCollaborating
         // Pinned off: their shortcuts would otherwise lock the board or hide nothing useful,
         // with no control in the chrome to get back.
         viewModeEnabled={false}

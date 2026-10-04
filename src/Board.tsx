@@ -4,6 +4,7 @@ import { useAutosave } from './boards/useAutosave'
 import { Chrome } from './chrome/Chrome'
 import type { Engine, Theme } from './engine/engine'
 import { EngineCanvas } from './engine/EngineCanvas'
+import { loadIdentity } from './sync/identity'
 import { useBoardSync } from './sync/useBoardSync'
 
 type Props = {
@@ -20,7 +21,8 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
 
   useEffect(() => store.setRecentBoard(id), [id, store])
   const saveFailure = useAutosave(engine, id, store)
-  const sync = useBoardSync(engine, id)
+  const [identity] = useState(() => loadIdentity(window.localStorage))
+  const sync = useBoardSync(engine, id, identity)
 
   useEffect(() => {
     if (!import.meta.env.DEV || !engine) return
@@ -28,6 +30,7 @@ export function Board({ id, store, theme, onToggleTheme }: Props) {
       boardId: id,
       scene: () => [...engine.scene().elements],
       otherParticipants: () => sync.otherParticipants.length,
+      shownParticipants: () => engine.shownParticipants(),
     }
     return () => void delete window.__tablo
   }, [engine, id, sync])
