@@ -55,3 +55,27 @@ _Avoid_: Database, persistence layer, backend
 **Recent board**:
 The board this browser opened last, which the root URL reopens.
 _Avoid_: Last board, default board, home board
+
+**Relay**:
+The server that passes messages between the browsers on a board. It keeps nothing: every browser holds its own copy of the board.
+_Avoid_: Backend, sync server, room server
+
+**Participant**:
+A visitor who is on a board while it is connected to the relay, as the others on that board see them.
+_Avoid_: Peer, collaborator, user, member
+
+**Presence**:
+What participants see of each other while on a board: cursors with names, selections, and who is there.
+_Avoid_: Awareness, status
+
+**Identity**:
+The name and colour a visitor is given on their first visit and keeps in that browser. It is how participants tell each other apart.
+_Avoid_: Profile, account, user
+
+**Activity**:
+What a participant is doing on the canvas that the others see: where their pointer is and what they have selected.
+_Avoid_: Cursor state, awareness
+
+**Tombstone**:
+A deleted element kept in the scene so the deletion reaches browsers that still hold the element.
+_Avoid_: Soft delete, ghost

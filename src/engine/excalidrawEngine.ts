@@ -5,10 +5,13 @@ import {
   exportToSvg,
   hashElementsVersion,
   newElementWith,
+  reconcileElements,
+  restoreElements,
   ROUNDNESS,
 } from '@excalidraw/excalidraw'
-import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
-import type { Engine, EngineState, SceneElement, Tool, Unsubscribe } from './engine'
+import type { RemoteExcalidrawElement } from '@excalidraw/excalidraw/data/reconcile'
+import type { AppState, ExcalidrawImperativeAPI, SocketId } from '@excalidraw/excalidraw/types'
+import type { Engine, EngineState, Point, SceneElement, Tool, Unsubscribe } from './engine'
 
 const ENGINE_TOOLS = {
   select: 'selection',
@@ -41,6 +44,26 @@ const engineButton = (container: HTMLElement, name: string) =>
 
 const canPress = (container: HTMLElement, name: string) =>
   engineButton(container, name)?.disabled === false
+
+/**
+ * Where the engine's pointer reports arrive. The engine hands them to a prop of
+ * its component, not to its imperative API, so the canvas component feeds this.
+ */
+export type PointerMoves = {
+  publish(point: Point): void
+  subscribe(listener: (point: Point) => void): Unsubscribe
+}
+
+export function createPointerMoves(): PointerMoves {
+  const listeners = new Set<(point: Point) => void>()
+  return {
+    publish: (point) => listeners.forEach((listener) => listener(point)),
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+  }
+}
 
 const ZOOM_STEP = 0.1
 const MIN_ZOOM = 0.1
@@ -88,7 +111,11 @@ const sameState = ({ style: styleA, ...a }: EngineState, { style: styleB, ...b }
  * Builds tablo's Engine on Excalidraw's imperative API. `container` is the element
  * the engine renders into, which is where its own (hidden) controls live.
  */
-export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElement): Engine {
+export function createEngine(
+  api: ExcalidrawImperativeAPI,
+  container: HTMLElement,
+  pointerMoves: PointerMoves,
+): Engine {
   const read = () => readState(api.getSceneElements(), api.getAppState(), container)
   let state = read()
   const stateListeners = new Set<() => void>()
@@ -138,6 +165,65 @@ export function createEngine(api: ExcalidrawImperativeAPI, container: HTMLElemen
 
   return {
     scene: () => ({ elements: api.getSceneElements() }),
+    sceneWithTombstones: () => ({ elements: api.getSceneElementsIncludingDeleted() }),
+
+    onActivity(listener) {
+      let pointer: Point | null = null
+      let selection = ''
+      const selectedIds = () => Object.keys(api.getAppState().selectedElementIds)
+      const stopPointer = pointerMoves.subscribe((point) => {
+        pointer = point
+        listener({ pointer, selectedIds: selectedIds() })
+      })
+      const stopSelection = api.onChange(() => {
+        const ids = selectedIds()
+        if (ids.join() === selection) return
+        selection = ids.join()
+        listener({ pointer, selectedIds: ids })
+      })
+      return () => {
+        stopPointer()
+        stopSelection()
+      }
+    },
+
+    showParticipants(participants) {
+      api.updateScene({
+        collaborators: new Map(
+          participants.map(({ id, name, colourKey, pointer, selectedIds }) => [
+            id as SocketId,
+            {
+              // The engine colours the cursor from this id (see participantColour).
+              id: colourKey,
+              username: name,
+              pointer: pointer ? { ...pointer, tool: 'pointer' as const } : undefined,
+              selectedElementIds: Object.fromEntries(selectedIds.map((id) => [id, true as const])),
+            },
+          ]),
+        ),
+      })
+    },
+
+    shownParticipants: () =>
+      [...api.getAppState().collaborators].map(([id, shown]) => ({
+        id,
+        name: shown.username ?? '',
+        colourKey: shown.id ?? '',
+        pointer: shown.pointer ? { x: shown.pointer.x, y: shown.pointer.y } : null,
+        selectedIds: Object.keys(shown.selectedElementIds ?? {}),
+      })),
+
+    applyRemoteElements(elements) {
+      const remote = restoreElements(elements, null) as RemoteExcalidrawElement[]
+      api.updateScene({
+        elements: reconcileElements(
+          api.getSceneElementsIncludingDeleted(),
+          remote,
+          api.getAppState(),
+        ),
+        captureUpdate: CaptureUpdateAction.NEVER,
+      })
+    },
 
     onSceneChange(listener) {
       // Compare scene versions, and take the first report (sent on start-up) as the baseline.
